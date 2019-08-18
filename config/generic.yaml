@@ -1,0 +1,33 @@
+# Needs to publish both amd64 and 386
+- repo: kubeaudit
+  org: Shopify
+
+# Published multiple for each platform
+- repo: hugo
+  org: gohugoio
+
+# Assets has path in tar
+- repo: glide
+  org: Masterminds
+
+# ## Assets has path in tar.. :s
+- repo: aks-engine
+  org: Azure
+
+# Assets has both zip and tar and win exe not in tar.. :s
+- repo: kompose
+  org: kubernetes
+  
+- repo: chartmuseum
+  org: helm
+
+## NEW
+# Assets has path in tar
+# - repo: jwt-cli
+#   org: mike-engel
+#   arch: ""
+
+## BAD - git repo has different name from lua file
+# - repo: brigade
+#   org: brigadecore
+#   arch: amd64

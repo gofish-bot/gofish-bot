@@ -1,0 +1,4 @@
+github-data/
+gofish-bot
+**/.env
+deployment/kubeconfig.yaml

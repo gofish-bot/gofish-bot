@@ -1,0 +1,29 @@
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: gofish-bot
+spec:
+  schedule: "*/15 * * * *"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: gofish-bot
+            image: mogensen/gofish-bot:VERSION
+            resources:
+              requests:
+                cpu: "20m"
+                memory: "511Mi"
+              limits:
+                cpu: "1000m"
+                memory: "511Mi"
+            envFrom:
+            - secretRef:
+                name: gofish.github
+            args:
+              - /app/main
+              # - --verbose
+              - --apply
+          restartPolicy: OnFailure
