@@ -1,0 +1,7 @@
+.git
+Dockerfile
+.env
+.DS_Store
+.gitignore
+README.md
+.envrc

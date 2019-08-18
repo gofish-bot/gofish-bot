@@ -1,0 +1,50 @@
+## ALREADY UPTODATE
+
+- repo: gomplate
+  org: hairyhenderson
+  arch: amd64-slim
+
+- repo: oras
+  org: deislabs
+  arch: amd64
+
+- repo: minikube
+  org: kubernetes
+  arch: amd64
+
+- repo: serve
+  org: syntaqx
+  arch: x86_64
+
+- repo: skaffold
+  org: GoogleContainerTools
+  arch: amd64
+
+- repo: dep
+  org: golang
+  arch: amd64
+
+- repo: duffle
+  org: deislabs
+  arch: amd64
+
+- repo: buffalo
+  org: gobuffalo
+  arch: amd64
+  onlyprerelease: true
+
+- repo: mole
+  org: davrodpin
+  arch: amd64
+
+- repo: polaris
+  org: FairwindsOps
+  arch: x86_64
+
+- repo: devdash
+  org: Phantas0s
+  arch: x86_64
+
+- repo: k9s
+  org: derailed
+  arch: x86_64

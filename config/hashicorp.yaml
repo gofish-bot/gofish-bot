@@ -1,0 +1,11 @@
+- repo: terraform
+  org: hashicorp
+  arch: amd64
+
+- repo: packer
+  org: hashicorp
+  arch: amd64
+
+- repo: vault
+  org: hashicorp
+  arch: amd64
