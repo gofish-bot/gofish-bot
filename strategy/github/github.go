@@ -101,6 +101,7 @@ func (g *Github) CreateApplication(ctx context.Context, app models.DesiredApp) (
 		Name:         app.Repo,
 		Description:  repoDetails.GetDescription(),
 		Organization: app.Org,
+		Path:         app.Path,
 		Version:      strings.Replace(releaseName, "v", "", 1),
 		Arch:         app.Arch,
 		Licence:      repoDetails.GetLicense().GetSPDXID(),

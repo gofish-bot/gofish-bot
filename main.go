@@ -42,6 +42,7 @@ func main() {
 
 	var apply bool
 	var verbose bool
+	var target string
 
 	app := cli.NewApp()
 	app.Version = "0.0.1"
@@ -51,6 +52,10 @@ func main() {
 			Name:        "apply",
 			Usage:       "Apply the planned actions",
 			Destination: &apply,
+		}, cli.StringFlag{
+			Name:        "target",
+			Usage:       "Target only one Food",
+			Destination: &target,
 		}, cli.BoolFlag{
 			Name:        "verbose",
 			Usage:       "Full debug log",
@@ -87,15 +92,15 @@ func main() {
 		}
 		// Hashicorp
 		h := hashicorp.HashiCorp{Client: client, GithubToken: githubToken, GoFish: goFish, Log: &log}
-		h.UpdateApplications(ctx, getApps("config/hashicorp.yaml"), apply)
+		h.UpdateApplications(ctx, getApps("config/hashicorp.yaml", target), apply)
 
 		// Generic
 		gen := generic.Generic{Client: client, GithubToken: githubToken, GoFish: goFish, Log: &log}
-		gen.UpdateApplications(ctx, getApps("config/generic.yaml"), apply)
+		gen.UpdateApplications(ctx, getApps("config/generic.yaml", target), apply)
 
 		// Github
 		g := github.Github{Client: client, GithubToken: githubToken, GoFish: goFish, Log: &log}
-		g.UpdateApplications(ctx, getApps("config/apps.yaml"), apply)
+		g.UpdateApplications(ctx, getApps("config/apps.yaml", target), apply)
 		return nil
 	}
 
@@ -105,7 +110,7 @@ func main() {
 	}
 }
 
-func getApps(path string) []models.DesiredApp {
+func getApps(path, target string) []models.DesiredApp {
 
 	c := []models.DesiredApp{}
 
@@ -117,6 +122,15 @@ func getApps(path string) []models.DesiredApp {
 	if err != nil {
 		log.Fatalf("Unmarshal: %v", err)
 	}
+	if target == "" {
+		return c
+	}
 
-	return c
+	for _, app := range c {
+		if app.Repo == target {
+			return []models.DesiredApp{app}
+		}
+	}
+
+	return []models.DesiredApp{}
 }

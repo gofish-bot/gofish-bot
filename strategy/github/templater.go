@@ -28,7 +28,11 @@ food = {
             sha256 = "{{$val.Sha256}}",
             resources = {
                 {
+                    {{- if $.Path }}
+                    path = "{{ $.Path }}" .. {{$val.Path}},
+                    {{- else }}
                     path = {{$val.Path}},
+                    {{- end }}
                     installpath = {{$val.InstallPath}}{{- if $val.Executable}},
                     executable = true
                     {{- end}}

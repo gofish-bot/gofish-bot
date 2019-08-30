@@ -10,8 +10,8 @@ import (
 
 	"github.com/gofish-bot/gofish-bot/gofishgithub"
 
-	"github.com/gofish-bot/gofish-bot/strategy/github"
 	"github.com/gofish-bot/gofish-bot/models"
+	"github.com/gofish-bot/gofish-bot/strategy/github"
 
 	"github.com/sirupsen/logrus"
 
@@ -30,6 +30,7 @@ func main() {
 	var verbose bool
 	var githubPath string
 	var arch string
+	var path string
 	var apply bool
 
 	app := cli.NewApp()
@@ -49,6 +50,11 @@ func main() {
 			Usage:       "Arch",
 			Value:       "amd64",
 			Destination: &arch,
+		}, cli.StringFlag{
+			Name:        "path",
+			Usage:       "Path",
+			Value:       "",
+			Destination: &path,
 		}, cli.BoolFlag{
 			Name:        "verbose",
 			Usage:       "Full debug log",
@@ -92,6 +98,7 @@ func main() {
 			Repo: strings.Split(u.Path, "/")[2],
 			Org:  strings.Split(u.Path, "/")[1],
 			Arch: arch,
+			Path: path,
 		}
 		log.Infof("%v", app)
 
@@ -105,6 +112,7 @@ func main() {
 		}
 
 		g := github.Github{
+			Log:         &log,
 			Client:      client,
 			GithubToken: githubToken,
 			GoFish:      goFish,
@@ -144,7 +152,6 @@ func runLint(application *models.Application) {
 	cmd.Stdout = &out
 	err := cmd.Run()
 	if err != nil {
-		log.Error(out.String())
-		log.Fatal(err)
+		log.Error("linting failed")
 	}
 }

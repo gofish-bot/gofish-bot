@@ -5,6 +5,7 @@ type DesiredApp struct {
 	Org            string
 	Arch           string
 	Onlyprerelease bool
+	Path        string
 }
 
 type Asset struct {
@@ -21,6 +22,7 @@ type Application struct {
 	ReleaseName    string
 	Name           string
 	Organization   string
+	Path           string
 	CurrentVersion string
 	Version        string
 	Arch           string

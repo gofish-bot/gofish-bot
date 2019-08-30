@@ -55,11 +55,14 @@ func (g *Generic) UpdateApplications(ctx context.Context, appsGithub []models.De
 			continue
 		}
 
-		// err = g.GoFish.LintString(app.Name, content)
-		// if err != nil {
-		// 	g.Log.Warnf("Linting failed: %v", err)
-		// 	continue
-		// }
+		err = g.GoFish.LintString(app.Name, content)
+		if err != nil {
+			g.Log.Warnf("Linting failed: %v", err)
+			continue
+		} else {
+			g.Log.Infof("Linting ok: %v", app.Name)
+
+		}
 		if app.CurrentVersion != app.Version {
 			missing := app.CurrentVersion == ""
 			needsUpgrade := !missing && app.CurrentVersion != app.Version

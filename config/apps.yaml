@@ -44,7 +44,3 @@
 - repo: devdash
   org: Phantas0s
   arch: x86_64
-
-- repo: k9s
-  org: derailed
-  arch: x86_64

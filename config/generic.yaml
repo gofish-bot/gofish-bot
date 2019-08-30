@@ -21,6 +21,21 @@
 - repo: chartmuseum
   org: helm
 
+- repo: k9s
+  org: derailed
+
+
+# Zip not published on jetbrains https://github.com/fishworks/fish-food/issues/323
+# - repo: delve
+#   org: derekparker
+  
+# No releases on github
+# - repo: kubectl
+#   org: kubernetes
+
+# - repo: go
+#   org: golang
+
 ## NEW
 # Assets has path in tar
 # - repo: jwt-cli
