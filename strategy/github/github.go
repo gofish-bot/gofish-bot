@@ -10,9 +10,9 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/gofish-bot/gofish-bot/gofishgithub"
+	"github.com/gofish-bot/gofish-bot/log"
 	"github.com/gofish-bot/gofish-bot/models"
 	"github.com/gofish-bot/gofish-bot/printer"
-	"github.com/sirupsen/logrus"
 
 	"strings"
 
@@ -21,10 +21,7 @@ import (
 )
 
 type Github struct {
-	Log         *logrus.Logger
-	Client      *ghApi.Client
-	GithubToken string
-	GoFish      *gofishgithub.GoFish
+	GoFish *gofishgithub.GoFish
 }
 
 func (g *Github) UpdateApplications(ctx context.Context, appsGithub []models.DesiredApp, createPullrequests bool) {
@@ -33,11 +30,11 @@ func (g *Github) UpdateApplications(ctx context.Context, appsGithub []models.Des
 	for _, app := range appsGithub {
 		application, err := g.CreateApplication(ctx, app)
 		if err != nil {
-			g.Log.Warnf("Error in handling %s: %v", app.Repo, err)
+			log.G(ctx).Warnf("Error in handling %s: %v", app.Repo, err)
 		} else {
 			currentVersion, err := g.GoFish.GetCurrentVersion(ctx, app)
 			if err != nil {
-				g.Log.Warn(errors.Wrap(err, "Could not find current version"))
+				log.G(ctx).Warn(errors.Wrap(err, "Could not find current version"))
 			} else {
 				application.CurrentVersion = currentVersion
 			}
@@ -49,40 +46,45 @@ func (g *Github) UpdateApplications(ctx context.Context, appsGithub []models.Des
 	printer.Table(applications)
 
 	for _, app := range applications {
-		// var buf bytes.Buffer
-
-		// err := serializeLuaContent(app, &buf)
-		// if err != nil {
-		// 	fmt.Println(err)
-		// 	return
-		// }
-
-		// err = g.GoFish.LintString(app.Name, buf.String())
-		// if err != nil {
-		// 	g.Log.Warnf("Linting failed: %v", err)
-		// 	continue
-		// }
 		if app.CurrentVersion != app.Version {
 			missing := app.CurrentVersion == ""
 			needsUpgrade := !missing && app.CurrentVersion != app.Version
-			if needsUpgrade && createPullrequests {
+			upgradeToBeta := (!strings.Contains(app.CurrentVersion, "beta")) && strings.Contains(app.Version, "beta")
+
+			if needsUpgrade {
+				g.CreateLuaFile(ctx, app)
+
+				err := g.GoFish.Lint(app)
+				if err != nil {
+					log.G(ctx).Warnf("Linting failed: %v", err)
+					continue
+				} else {
+					log.G(ctx).Infof("Linting ok: %v", app.Name)
+				}
+			}
+
+			if upgradeToBeta {
+				log.G(ctx).Infof("Will not upgrade to beta release: %s", app.Name)
+			} else if needsUpgrade && createPullrequests {
+				log.G(ctx).Infof("Creating pr for release: %s", app.Name)
+				g.CreateLuaFile(ctx, app)
 				g.CreatePullRequest(ctx, app)
 			} else if missing {
-				g.Log.Infof("Will not create new apps for now: %s", app.Name)
+				log.G(ctx).Infof("Will not create new apps for now: %s", app.Name)
 			}
 		}
 	}
 }
 
 func (g *Github) CreateApplication(ctx context.Context, app models.DesiredApp) (*models.Application, error) {
-	g.Log.Infof("## Creating Application for %s", app.Repo)
+	log.G(ctx).Infof("## Creating Application for %s", app.Repo)
 
-	releaseList, _, err := g.Client.Repositories.ListReleases(ctx, app.Org, app.Repo, &ghApi.ListOptions{})
+	releaseList, _, err := g.GoFish.Client.Repositories.ListReleases(ctx, app.Org, app.Repo, &ghApi.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
 
-	repoDetails, _, err := g.Client.Repositories.Get(ctx, app.Org, app.Repo)
+	repoDetails, _, err := g.GoFish.Client.Repositories.Get(ctx, app.Org, app.Repo)
 	if err != nil {
 		return nil, err
 	}
@@ -109,47 +111,46 @@ func (g *Github) CreateApplication(ctx context.Context, app models.DesiredApp) (
 		Assets:       []models.Asset{},
 	}
 
-	checksumService := NewChecksumService(application, g.GithubToken, release.Assets, g.Log)
+	checksumService := NewChecksumService(application, g.GoFish.Client, release.Assets)
 	application.Assets = g.GetAssets(application, release.Assets, checksumService)
 	return &application, nil
 }
 
-func (g *Github) CreateLuaFile(application *models.Application) {
+func (g *Github) CreateLuaFile(ctx context.Context, application *models.Application) {
 	f, err := os.Create("/usr/local/Fish/Rigs/github.com/fishworks/fish-food/Food/" + application.Name + ".lua")
 	if err != nil {
-		g.Log.Warn(err)
+		log.G(ctx).Warn(err)
 		return
 	}
 	defer f.Close()
 	err = serializeLuaContent(application, f)
 	if err != nil {
-		g.Log.Warn(err)
+		log.G(ctx).Warn(err)
 		return
 	}
 }
 
 func (g *Github) CreatePullRequest(ctx context.Context, application *models.Application) {
 
-	g.Log.Infof("## Creating Pullrequest for %s version %s", application.Name, application.Version)
+	log.G(ctx).Infof("## Creating Pullrequest for %s version %s", application.Name, application.Version)
 
 	var b bytes.Buffer
 	foo := bufio.NewWriter(&b)
 	err := serializeLuaContent(application, foo)
 	if err != nil {
-		g.Log.Warn(err)
+		log.G(ctx).Warn(err)
 		return
 	}
 	foo.Flush()
 
 	err = g.GoFish.CreatePullRequest(ctx, application, b.Bytes())
 	if err != nil {
-		g.Log.Warnf("Failed creating PR: %v", err)
+		log.G(ctx).Warnf("Failed creating PR: %v", err)
 		return
 	}
 }
 
 func findRelease(app models.DesiredApp, releaseList []*ghApi.RepositoryRelease) *ghApi.RepositoryRelease {
-	release := releaseList[0]
 	if app.Onlyprerelease {
 		for k, v := range releaseList {
 			if v.GetPrerelease() {
@@ -158,7 +159,15 @@ func findRelease(app models.DesiredApp, releaseList []*ghApi.RepositoryRelease) 
 			return releaseList[k]
 		}
 	}
-	return release
+	return releaseList[0]
+
+	// for _, release := range releaseList {
+	// 	fmt.Printf("Release %s\n", release.GetTagName())
+	// 	if !strings.Contains(release.GetTagName(), "beta") {
+	// 		return release
+	// 	}
+	// }
+	// return releaseList[0]
 }
 
 func (g *Github) GetAssets(app models.Application, releaseAssets []github.ReleaseAsset, checksumService *ChecksumService) []models.Asset {
@@ -166,7 +175,7 @@ func (g *Github) GetAssets(app models.Application, releaseAssets []github.Releas
 	assets := []models.Asset{}
 
 	for _, c := range releaseAssets {
-		if strings.Contains(c.GetName(), "sha256") {
+		if strings.Contains(c.GetName(), "sha256") || strings.Contains(c.GetName(), "sha512") {
 			continue
 		}
 		cleanName := strings.ToLower(c.GetName())
@@ -177,7 +186,7 @@ func (g *Github) GetAssets(app models.Application, releaseAssets []github.Releas
 			path = strings.Replace(c.GetName(), app.Name, "name .. \"", 1) + "\""
 		}
 
-		if (strings.Contains(cleanName, "darwin") || strings.Contains(cleanName, "macos")) && strings.Contains(cleanName, app.Arch) {
+		if (strings.Contains(cleanName, "osx") || strings.Contains(cleanName, "darwin") || strings.Contains(cleanName, "macos")) && strings.Contains(cleanName, app.Arch) {
 			assets = append(assets, models.Asset{
 				Arch:        "amd64",
 				Os:          "darwin",
@@ -188,8 +197,7 @@ func (g *Github) GetAssets(app models.Application, releaseAssets []github.Releas
 				Executable:  true,
 			})
 
-		}
-		if strings.Contains(cleanName, "linux") && strings.Contains(cleanName, app.Arch) {
+		} else if strings.Contains(cleanName, "linux") && strings.Contains(cleanName, app.Arch) {
 			assets = append(assets, models.Asset{
 				Arch:        "amd64",
 				Os:          "linux",
@@ -199,13 +207,12 @@ func (g *Github) GetAssets(app models.Application, releaseAssets []github.Releas
 				Sha256:      checksumService.getChecksum(c.GetBrowserDownloadURL(), c.GetName()),
 				Executable:  true,
 			})
-		}
-		if strings.Contains(cleanName, "windows") && strings.Contains(cleanName, app.Arch) {
+		} else if (strings.Contains(cleanName, "win") || strings.Contains(cleanName, "windows")) && strings.Contains(cleanName, app.Arch) {
 			if strings.Contains(cleanName, "tar") || strings.Contains(cleanName, "zip") {
 				path = "name .. \".exe\""
 			}
 			if !strings.Contains(cleanName, "tar") && !strings.Contains(cleanName, "zip") && !strings.Contains(cleanName, "exe") {
-				continue
+				path = "name"
 			}
 
 			assets = append(assets, models.Asset{

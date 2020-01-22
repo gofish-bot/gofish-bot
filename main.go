@@ -6,19 +6,17 @@ import (
 	"os"
 
 	"github.com/gofish-bot/gofish-bot/gofishgithub"
+	"github.com/sirupsen/logrus"
+
+	"github.com/gofish-bot/gofish-bot/log"
 
 	"github.com/gofish-bot/gofish-bot/models"
 	"github.com/gofish-bot/gofish-bot/strategy/generic"
 	"github.com/gofish-bot/gofish-bot/strategy/github"
 	"github.com/gofish-bot/gofish-bot/strategy/hashicorp"
 
-	"github.com/sirupsen/logrus"
-
 	"github.com/go-yaml/yaml"
-	"github.com/gobuffalo/envy"
-	ghApi "github.com/google/go-github/v26/github"
 	"github.com/urfave/cli"
-	"golang.org/x/oauth2"
 )
 
 const tmpDir = "/tmp/gofish-bot"
@@ -36,8 +34,6 @@ func mkDir(path string) {
 	}
 }
 
-var log = *logrus.New()
-
 func main() {
 
 	var apply bool
@@ -49,7 +45,7 @@ func main() {
 
 	app.Flags = []cli.Flag{
 		cli.BoolFlag{
-			Name:        "apply",
+			Name:        "apply, a",
 			Usage:       "Apply the planned actions",
 			Destination: &apply,
 		}, cli.StringFlag{
@@ -66,47 +62,37 @@ func main() {
 	app.Action = func(c *cli.Context) error {
 
 		if verbose {
-			log.SetLevel(logrus.DebugLevel)
-		}
-
-		githubToken, err := envy.MustGet("GITHUB_TOKEN")
-		if err != nil {
-			log.Fatalf("Error getting Github token: %v", err)
+			log.L.Logger.SetLevel(logrus.DebugLevel)
 		}
 
 		ctx := context.Background()
-		ts := oauth2.StaticTokenSource(
-			&oauth2.Token{AccessToken: githubToken},
-		)
-		tc := oauth2.NewClient(ctx, ts)
-		client := ghApi.NewClient(tc)
 
+		client := gofishgithub.CreateClient(ctx)
 		goFish := &gofishgithub.GoFish{
 			Client:      client,
-			BotOrg:      "gofish-bot",
+			BotOrg:      "fmotrifork",
 			FoodRepo:    "fish-food",
 			FoodOrg:     "fishworks",
-			AuthorName:  "GoFish Bot",
-			AuthorEmail: "GoFishBot@gmail.com",
-			Log:         &log,
+			AuthorName:  "Frederik Mogensen",
+			AuthorEmail: "fmo@trifork.com",
 		}
 		// Hashicorp
-		h := hashicorp.HashiCorp{Client: client, GithubToken: githubToken, GoFish: goFish, Log: &log}
+		h := hashicorp.HashiCorp{GoFish: goFish}
 		h.UpdateApplications(ctx, getApps("config/hashicorp.yaml", target), apply)
 
 		// Generic
-		gen := generic.Generic{Client: client, GithubToken: githubToken, GoFish: goFish, Log: &log}
+		gen := generic.Generic{GoFish: goFish}
 		gen.UpdateApplications(ctx, getApps("config/generic.yaml", target), apply)
 
 		// Github
-		g := github.Github{Client: client, GithubToken: githubToken, GoFish: goFish, Log: &log}
+		g := github.Github{GoFish: goFish}
 		g.UpdateApplications(ctx, getApps("config/apps.yaml", target), apply)
 		return nil
 	}
 
 	err := app.Run(os.Args)
 	if err != nil {
-		log.Fatal(err)
+		log.L.Fatal(err)
 	}
 }
 
@@ -116,11 +102,11 @@ func getApps(path, target string) []models.DesiredApp {
 
 	yamlFile, err := ioutil.ReadFile(path)
 	if err != nil {
-		log.Printf("yamlFile.Get err   #%v ", err)
+		log.L.Printf("yamlFile.Get err   #%v ", err)
 	}
 	err = yaml.Unmarshal(yamlFile, &c)
 	if err != nil {
-		log.Fatalf("Unmarshal: %v", err)
+		log.L.Fatalf("Unmarshal: %v", err)
 	}
 	if target == "" {
 		return c

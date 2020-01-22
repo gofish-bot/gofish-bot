@@ -24,6 +24,22 @@
 - repo: k9s
   org: derailed
 
+- repo: saml2aws
+  org: Versent
+
+- repo: buffalo
+  org: gobuffalo
+  arch: amd64
+  onlyprerelease: true
+
+# Helm is now in version 3...
+# - repo: helm
+#   org: helm
+
+# Name is different from repo
+# - repo: istio
+#   org: istio
+#   name: istioctl
 
 # Zip not published on jetbrains https://github.com/fishworks/fish-food/issues/323
 # - repo: delve

@@ -8,10 +8,9 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/gofish-bot/gofish-bot/gofishgithub"
+	"github.com/gofish-bot/gofish-bot/log"
 	"github.com/gofish-bot/gofish-bot/models"
 	"github.com/gofish-bot/gofish-bot/printer"
-
-	"github.com/sirupsen/logrus"
 
 	"strings"
 
@@ -19,10 +18,7 @@ import (
 )
 
 type Generic struct {
-	Log         *logrus.Logger
-	Client      *ghApi.Client
-	GithubToken string
-	GoFish      *gofishgithub.GoFish
+	GoFish *gofishgithub.GoFish
 }
 
 func (g *Generic) UpdateApplications(ctx context.Context, appsGithub []models.DesiredApp, createPullrequests bool) {
@@ -31,11 +27,11 @@ func (g *Generic) UpdateApplications(ctx context.Context, appsGithub []models.De
 	for _, app := range appsGithub {
 		application, err := g.CreateApplication(ctx, app)
 		if err != nil {
-			g.Log.Warnf("Error in handling %s: %v", app.Repo, err)
+			log.G(ctx).Warnf("Error in handling %s: %v", app.Repo, err)
 		} else {
 			currentVersion, err := g.GoFish.GetCurrentVersion(ctx, app)
 			if err != nil {
-				g.Log.Warn(errors.Wrap(err, "Could not find current version"))
+				log.G(ctx).Warn(errors.Wrap(err, "Could not find current version"))
 			} else {
 				application.CurrentVersion = currentVersion
 			}
@@ -48,42 +44,52 @@ func (g *Generic) UpdateApplications(ctx context.Context, appsGithub []models.De
 
 	for _, app := range applications {
 
-		checksumService := NewChecksumService(*app, g.GithubToken, g.Log)
-		content, err := g.getUpgradedFood(ctx, app, checksumService)
-		if err != nil {
-			g.Log.Infof("Cound not upgrade current food: %s %s", app.Name, err)
-			continue
-		}
-
-		err = g.GoFish.LintString(app.Name, content)
-		if err != nil {
-			g.Log.Warnf("Linting failed: %v", err)
-			continue
-		} else {
-			g.Log.Infof("Linting ok: %v", app.Name)
-
-		}
 		if app.CurrentVersion != app.Version {
+
+			checksumService := NewChecksumService(*app, g.GoFish.Client)
+			content, err := g.getUpgradedFood(ctx, app, checksumService)
+			if err != nil {
+				log.G(ctx).Infof("Cound not upgrade current food: %s %s", app.Name, err)
+				continue
+			}
 			missing := app.CurrentVersion == ""
 			needsUpgrade := !missing && app.CurrentVersion != app.Version
-			if needsUpgrade && createPullrequests {
+			upgradeToBeta := (!strings.Contains(app.CurrentVersion, "beta")) && strings.Contains(app.Version, "beta")
+
+			if needsUpgrade {
+
+				g.CreateLuaFile(ctx, app, content)
+				err = g.GoFish.LintString(app.Name, content)
+				if err != nil {
+					log.G(ctx).Warnf("Linting failed: %v", err)
+					continue
+				} else {
+					log.G(ctx).Infof("Linting ok: %v", app.Name)
+				}
+			}
+
+			if upgradeToBeta {
+				log.G(ctx).Infof("Will not upgrade to beta release: %s", app.Name)
+			} else if needsUpgrade && createPullrequests {
+				log.G(ctx).Infof("Creating pr for release: %s", app.Name)
+				g.CreateLuaFile(ctx, app, content)
 				g.CreatePullRequest(ctx, app, content)
 			} else if missing {
-				g.Log.Infof("Generic strategy can not create new apps: %s", app.Name)
+				log.G(ctx).Infof("Generic strategy can not create new apps: %s", app.Name)
 			}
 		}
 	}
 }
 
 func (g *Generic) CreateApplication(ctx context.Context, app models.DesiredApp) (*models.Application, error) {
-	g.Log.Infof("## Creating Application for %s", app.Repo)
+	log.G(ctx).Infof("## Creating Application for %s", app.Repo)
 
-	releaseList, _, err := g.Client.Repositories.ListReleases(ctx, app.Org, app.Repo, &ghApi.ListOptions{})
+	releaseList, _, err := g.GoFish.Client.Repositories.ListReleases(ctx, app.Org, app.Repo, &ghApi.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
 
-	repoDetails, _, err := g.Client.Repositories.Get(ctx, app.Org, app.Repo)
+	repoDetails, _, err := g.GoFish.Client.Repositories.Get(ctx, app.Org, app.Repo)
 	if err != nil {
 		return nil, err
 	}
@@ -112,10 +118,10 @@ func (g *Generic) CreateApplication(ctx context.Context, app models.DesiredApp) 
 	return &application, nil
 }
 
-func (g *Generic) CreateLuaFile(application *models.Application, content string) {
+func (g *Generic) CreateLuaFile(ctx context.Context, application *models.Application, content string) {
 	err := ioutil.WriteFile("/usr/local/Fish/Rigs/github.com/fishworks/fish-food/Food/"+application.Name+".lua", []byte(content), 0644)
 	if err != nil {
-		g.Log.Warn(err)
+		log.G(ctx).Warn(err)
 		return
 	}
 	return
@@ -123,10 +129,10 @@ func (g *Generic) CreateLuaFile(application *models.Application, content string)
 
 func (g *Generic) CreatePullRequest(ctx context.Context, application *models.Application, content string) {
 
-	g.Log.Infof("## Creating Pullrequest for %s version %s", application.Name, application.Version)
+	log.G(ctx).Infof("## Creating Pullrequest for %s version %s", application.Name, application.Version)
 	err := g.GoFish.CreatePullRequest(ctx, application, []byte(content))
 	if err != nil {
-		g.Log.Warnf("Failed creating PR: %v", err)
+		log.G(ctx).Warnf("Failed creating PR: %v", err)
 		return
 	}
 }
@@ -166,7 +172,7 @@ func (g *Generic) getUpgradedFood(ctx context.Context, app *models.Application, 
 
 		newSha := checksumService.getChecksum(foodPackage.URL, ps)
 
-		g.Log.Debugf("Replacing old sha %s with %s", foodPackage.SHA256, newSha)
+		log.G(ctx).Debugf("Replacing old sha %s with %s", foodPackage.SHA256, newSha)
 		versionUpgradedFoodStr = strings.ReplaceAll(versionUpgradedFoodStr, foodPackage.SHA256, newSha)
 	}
 	return versionUpgradedFoodStr, nil

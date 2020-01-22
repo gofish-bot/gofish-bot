@@ -10,6 +10,7 @@ import (
 	"os"
 	"sort"
 
+	"github.com/gofish-bot/gofish-bot/log"
 	"github.com/gofish-bot/gofish-bot/printer"
 
 	"github.com/pkg/errors"
@@ -17,7 +18,6 @@ import (
 	"github.com/gofish-bot/gofish-bot/gofishgithub"
 
 	"github.com/gofish-bot/gofish-bot/models"
-	"github.com/sirupsen/logrus"
 
 	"strings"
 
@@ -25,10 +25,7 @@ import (
 )
 
 type HashiCorp struct {
-	Log         *logrus.Logger
-	Client      *ghApi.Client
-	GithubToken string
-	GoFish      *gofishgithub.GoFish
+	GoFish *gofishgithub.GoFish
 }
 
 func (h *HashiCorp) UpdateApplications(ctx context.Context, appsGithub []models.DesiredApp, createPullrequests bool) {
@@ -37,11 +34,11 @@ func (h *HashiCorp) UpdateApplications(ctx context.Context, appsGithub []models.
 	for _, app := range appsGithub {
 		application, err := h.CreateApplication(ctx, app)
 		if err != nil {
-			h.Log.Warnf("Error in handling %s: %v", app.Repo, err)
+			log.G(ctx).Warnf("Error in handling %s: %v", app.Repo, err)
 		} else {
 			currentVersion, err := h.GoFish.GetCurrentVersion(ctx, app)
 			if err != nil {
-				h.Log.Warn(errors.Wrap(err, "Could not find current version"))
+				log.G(ctx).Warn(errors.Wrap(err, "Could not find current version"))
 			} else {
 				application.CurrentVersion = currentVersion
 			}
@@ -53,43 +50,44 @@ func (h *HashiCorp) UpdateApplications(ctx context.Context, appsGithub []models.
 	printer.Table(applications)
 
 	for _, app := range applications {
-		// var buf bytes.Buffer
-
-		// err := newCreateHashicorp(app, &buf)
-		// if err != nil {
-		// 	h.Log.Error(err)
-		// 	continue
-		// }
-
-		// err = h.GoFish.LintString(app.Name, buf.String())
-		// if err != nil {
-		// 	for _, line := range strings.Split(err.Error(), "\n") {
-		// 		h.Log.Warnf("%v", line)
-		// 	}
-		// 	continue
-		// }
-
 		if app.CurrentVersion != app.Version {
 			missing := app.CurrentVersion == ""
 			needsUpgrade := !missing && app.CurrentVersion != app.Version
-			if needsUpgrade && createPullrequests {
+			upgradeToBeta := (!strings.Contains(app.CurrentVersion, "beta")) && strings.Contains(app.Version, "beta")
+
+			if needsUpgrade {
+				h.CreateLuaFile(ctx, app)
+
+				err := h.GoFish.Lint(app)
+				if err != nil {
+					log.G(ctx).Warnf("Linting failed: %v", err)
+					continue
+				} else {
+					log.G(ctx).Infof("Linting ok: %v", app.Name)
+				}
+			}
+
+			if upgradeToBeta {
+				log.G(ctx).Infof("Will not upgrade to beta release: %s", app.Name)
+			} else if needsUpgrade && createPullrequests {
+				log.G(ctx).Infof("Creating pr for release: %s", app.Name)
 				h.CreatePullRequest(ctx, app)
 			} else if missing {
-				h.Log.Infof("Will not create new apps for now: %s", app.Name)
+				log.G(ctx).Infof("Will not create new apps for now: %s", app.Name)
 			}
 		}
 	}
 }
 
 func (h *HashiCorp) CreateApplication(ctx context.Context, app models.DesiredApp) (*models.Application, error) {
-	h.Log.Infof("## Creating Application for %s", app.Repo)
+	log.G(ctx).Infof("## Creating Application for %s", app.Repo)
 
-	tagList, _, err := h.Client.Repositories.ListTags(ctx, app.Org, app.Repo, &ghApi.ListOptions{})
+	tagList, _, err := h.GoFish.Client.Repositories.ListTags(ctx, app.Org, app.Repo, &ghApi.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
 
-	repoDetails, _, err := h.Client.Repositories.Get(ctx, app.Org, app.Repo)
+	repoDetails, _, err := h.GoFish.Client.Repositories.Get(ctx, app.Org, app.Repo)
 	if err != nil {
 		return nil, err
 	}
@@ -99,7 +97,7 @@ func (h *HashiCorp) CreateApplication(ctx context.Context, app models.DesiredApp
 	releaseName := release.GetName()
 	cleanVersion := strings.Replace(releaseName, "v", "", 1)
 
-	checksums, err = h.downloadFile(fmt.Sprintf("https://releases.hashicorp.com/%s/%s/%s_%s_SHA256SUMS", app.Repo, cleanVersion, app.Repo, cleanVersion))
+	checksums, err = h.downloadFile(ctx, fmt.Sprintf("https://releases.hashicorp.com/%s/%s/%s_%s_SHA256SUMS", app.Repo, cleanVersion, app.Repo, cleanVersion))
 	if err != nil {
 		return nil, errors.Wrap(err, "Could not download checksums")
 	}
@@ -117,22 +115,22 @@ func (h *HashiCorp) CreateApplication(ctx context.Context, app models.DesiredApp
 	return &application, nil
 }
 
-func (h *HashiCorp) CreateLuaFile(application *models.Application) {
+func (h *HashiCorp) CreateLuaFile(ctx context.Context, application *models.Application) {
 	f, err := os.Create("/usr/local/Fish/Rigs/github.com/fishworks/fish-food/Food/" + application.Name + ".lua")
 	if err != nil {
-		h.Log.Warn(err)
+		log.G(ctx).Warn(err)
 		return
 	}
 	defer f.Close()
 	err = newCreateHashicorp(application, f)
 	if err != nil {
-		h.Log.Warn(err)
+		log.G(ctx).Warn(err)
 		return
 	}
 }
 
 func (h *HashiCorp) CreatePullRequest(ctx context.Context, application *models.Application) {
-	h.Log.Infof("## Creating Pullrequest for %s version %s", application.Name, application.Version)
+	log.G(ctx).Infof("## Creating Pullrequest for %s version %s", application.Name, application.Version)
 
 	var b bytes.Buffer
 	foo := bufio.NewWriter(&b)
@@ -141,7 +139,7 @@ func (h *HashiCorp) CreatePullRequest(ctx context.Context, application *models.A
 
 	err := h.GoFish.CreatePullRequest(ctx, application, b.Bytes())
 	if err != nil {
-		h.Log.Warnf("Failed creating PR: %v", err)
+		log.G(ctx).Warnf("Failed creating PR: %v", err)
 		return
 	}
 }
@@ -214,9 +212,9 @@ func (h *HashiCorp) getChecksum(assetName, checksums string) string {
 
 // downloadFile will download a url to a local file. It's efficient because it will
 // write as it downloads and not load the whole file into memory.
-func (h *HashiCorp) downloadFile(url string) (string, error) {
+func (h *HashiCorp) downloadFile(ctx context.Context, url string) (string, error) {
 
-	h.Log.Debugf("Downloading: %s", url)
+	log.G(ctx).Debugf("Downloading: %s", url)
 	// Get the data
 	req, _ := http.NewRequest("GET", url, nil)
 

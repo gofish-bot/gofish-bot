@@ -10,6 +10,7 @@ import (
 
 	"github.com/gofish-bot/gofish-bot/gofishgithub"
 
+	"github.com/gofish-bot/gofish-bot/log"
 	"github.com/gofish-bot/gofish-bot/models"
 	"github.com/gofish-bot/gofish-bot/strategy/github"
 
@@ -24,8 +25,6 @@ import (
 	"github.com/urfave/cli"
 )
 
-var log = *logrus.New()
-
 func main() {
 	var verbose bool
 	var githubPath string
@@ -38,15 +37,16 @@ func main() {
 
 	app.Flags = []cli.Flag{
 		cli.BoolFlag{
-			Name:        "apply",
+			Name:        "apply, a",
 			Usage:       "Apply the planned actions",
 			Destination: &apply,
 		}, cli.StringFlag{
 			Name:        "project, p",
 			Usage:       "github url",
 			Destination: &githubPath,
+			Required:    true,
 		}, cli.StringFlag{
-			Name:        "arch, a",
+			Name:        "arch",
 			Usage:       "Arch",
 			Value:       "amd64",
 			Destination: &arch,
@@ -63,9 +63,10 @@ func main() {
 	}
 
 	app.Action = func(c *cli.Context) error {
+		ctx := context.Background()
 
 		if verbose {
-			log.SetLevel(logrus.DebugLevel)
+			log.G(ctx).Logger.SetLevel(logrus.DebugLevel)
 		}
 
 		u, err := url.Parse(githubPath)
@@ -75,15 +76,14 @@ func main() {
 
 		githubToken, err := envy.MustGet("GITHUB_TOKEN")
 		if err != nil {
-			log.Fatalf("Error getting Github token: %v", err)
+			log.G(ctx).Fatalf("Error getting Github token: %v", err)
 		}
 
 		githubOrg, err := envy.MustGet("GITHUB_ORG")
 		if err != nil {
-			log.Fatalf("Error getting Github token: %v", err)
+			log.G(ctx).Fatalf("Error getting Github token: %v", err)
 		}
 
-		ctx := context.Background()
 		ts := oauth2.StaticTokenSource(
 			&oauth2.Token{AccessToken: githubToken},
 		)
@@ -93,14 +93,13 @@ func main() {
 		_ = client
 
 		// Github
-
 		app := models.DesiredApp{
 			Repo: strings.Split(u.Path, "/")[2],
 			Org:  strings.Split(u.Path, "/")[1],
 			Arch: arch,
 			Path: path,
 		}
-		log.Infof("%v", app)
+		log.G(ctx).Infof("%v", app)
 
 		goFish := &gofishgithub.GoFish{
 			Client:      client,
@@ -112,15 +111,12 @@ func main() {
 		}
 
 		g := github.Github{
-			Log:         &log,
-			Client:      client,
-			GithubToken: githubToken,
-			GoFish:      goFish,
+			GoFish: goFish,
 		}
 
 		application, err := g.CreateApplication(ctx, app)
 		if err != nil {
-			log.Errorf("Error handling: %s", app.Repo)
+			log.G(ctx).Errorf("Error handling: %s", app.Repo)
 		}
 
 		headerFmt := color.New(color.FgGreen, color.Underline).SprintfFunc()
@@ -132,8 +128,15 @@ func main() {
 		tbl.AddRow(application.Organization, application.Name, application.Version)
 		tbl.Print()
 
-		g.CreateLuaFile(application)
+		g.CreateLuaFile(ctx, application)
 		runLint(application)
+
+		err = g.GoFish.Lint(application)
+		if err != nil {
+			log.G(ctx).Warnf("Linting failed: %v", err)
+		} else {
+			log.G(ctx).Infof("Linting ok: %v", application.Name)
+		}
 
 		if apply {
 			g.CreatePullRequest(ctx, application)
@@ -143,7 +146,7 @@ func main() {
 
 	err := app.Run(os.Args)
 	if err != nil {
-		log.Fatal(err)
+		log.L.Fatal(err)
 	}
 }
 func runLint(application *models.Application) {
@@ -152,6 +155,6 @@ func runLint(application *models.Application) {
 	cmd.Stdout = &out
 	err := cmd.Run()
 	if err != nil {
-		log.Error("linting failed")
+		log.L.Error("linting failed")
 	}
 }

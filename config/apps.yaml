@@ -28,11 +28,6 @@
   org: deislabs
   arch: amd64
 
-- repo: buffalo
-  org: gobuffalo
-  arch: amd64
-  onlyprerelease: true
-
 - repo: mole
   org: davrodpin
   arch: amd64
@@ -44,3 +39,11 @@
 - repo: devdash
   org: Phantas0s
   arch: x86_64
+
+- repo: kind
+  org: kubernetes-sigs
+  arch: amd64
+
+- repo: kubebuilder
+  org: kubernetes-sigs
+  arch: amd64

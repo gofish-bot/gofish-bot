@@ -8,15 +8,15 @@ import (
 	"os"
 	"strings"
 
-	"github.com/sirupsen/logrus"
+	ghApi "github.com/google/go-github/v26/github"
 
+	"github.com/gofish-bot/gofish-bot/log"
 	"github.com/gofish-bot/gofish-bot/models"
 )
 
 type ChecksumService struct {
-	Log         *logrus.Logger
 	application models.Application
-	githubToken string
+	ghClient    *ghApi.Client
 }
 
 type Checksum struct {
@@ -24,11 +24,10 @@ type Checksum struct {
 	SHA       string
 }
 
-func NewChecksumService(application models.Application, githubToken string, log *logrus.Logger) *ChecksumService {
+func NewChecksumService(application models.Application, ghClient *ghApi.Client) *ChecksumService {
 	c := &ChecksumService{
-		Log:         log,
 		application: application,
-		githubToken: githubToken,
+		ghClient:    ghClient,
 	}
 	return c
 
@@ -37,7 +36,7 @@ func NewChecksumService(application models.Application, githubToken string, log 
 func (c *ChecksumService) getChecksum(url, assetName string) string {
 	sha, err := c.getShaFromURL(assetName, url)
 	if err != nil {
-		c.Log.Error(err)
+		log.L.Error(err)
 		return ""
 	}
 
@@ -63,18 +62,22 @@ func (c *ChecksumService) downloadFile(assetName, url string) (io.ReadCloser, er
 	path := fmt.Sprintf("/tmp/gofish-bot/%s-%s-%s-%s", c.application.Organization, c.application.Name, c.application.ReleaseName, assetName)
 
 	if _, err := os.Stat(path); err == nil {
-		c.Log.Debugf("Getting from cache: %s", url)
+		log.L.Debugf("Getting from cache: %s", url)
 		return getFile(path)
 	}
 
-	c.Log.Debugf("Downloading: %s to %s", url, path)
-	req, err := http.NewRequest(http.MethodGet, url, nil)
+	log.L.Debugf("Downloading: %s to %s", url, path)
+	var req *http.Request
+	var err error
+
+	// Use GitHub client if asset is on github
+	if strings.HasPrefix(url, "https://github.com/") {
+		req, err = c.ghClient.NewRequest(http.MethodGet, url, nil)
+	} else {
+		req, err = http.NewRequest(http.MethodGet, url, nil)
+	}
 	if err != nil {
 		return nil, err
-	}
-	// Only add auth header if asset is on github
-	if strings.HasPrefix(url, "https://github.com/") {
-		req.Header.Set("Authorization", "token "+c.githubToken)
 	}
 
 	resp, err := http.DefaultClient.Do(req)

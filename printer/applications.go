@@ -1,6 +1,8 @@
 package printer
 
 import (
+	"strings"
+
 	"github.com/gofish-bot/gofish-bot/models"
 
 	"github.com/fatih/color"
@@ -17,7 +19,11 @@ func Table(applications []*models.Application) {
 
 	for _, app := range applications {
 		status := ""
-		if app.CurrentVersion != "" && app.CurrentVersion != app.Version {
+		upgradeToBeta := (!strings.Contains(app.CurrentVersion, "beta")) && strings.Contains(app.Version, "beta")
+
+		if upgradeToBeta {
+			status = "Will not upgrade to beta"
+		} else if app.CurrentVersion != "" && app.CurrentVersion != app.Version {
 			status = "Needs update"
 		} else if app.CurrentVersion == "" {
 			status = "Missing"

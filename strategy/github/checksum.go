@@ -9,17 +9,16 @@ import (
 	"os"
 	"strings"
 
-	ghApi "github.com/google/go-github/v26/github"
+	"github.com/gofish-bot/gofish-bot/log"
 	"github.com/gofish-bot/gofish-bot/models"
-	"github.com/sirupsen/logrus"
+	ghApi "github.com/google/go-github/v26/github"
 )
 
 type ChecksumService struct {
-	Log         *logrus.Logger
 	application models.Application
 	checksums   []Checksum
 	preloaded   bool
-	githubToken string
+	ghClient    *ghApi.Client
 }
 
 type Checksum struct {
@@ -27,11 +26,10 @@ type Checksum struct {
 	SHA       string
 }
 
-func NewChecksumService(application models.Application, githubToken string, assets []ghApi.ReleaseAsset, log *logrus.Logger) *ChecksumService {
+func NewChecksumService(application models.Application, ghClient *ghApi.Client, assets []ghApi.ReleaseAsset) *ChecksumService {
 	c := &ChecksumService{
 		application: application,
-		githubToken: githubToken,
-		Log:         log,
+		ghClient:    ghClient,
 	}
 	c.preLoadFromAssets(assets)
 	return c
@@ -42,14 +40,14 @@ func (c *ChecksumService) getChecksum(url, assetName string) string {
 
 	for _, checksum := range c.checksums {
 		if strings.Contains(checksum.AssetName, assetName) {
-			c.Log.Debugf("Found sha %s for %s in %s\n", checksum.SHA, assetName, checksum.AssetName)
+			log.L.Debugf("Found sha %s for %s in %s\n", checksum.SHA, assetName, checksum.AssetName)
 			return checksum.SHA
 		}
 	}
-	c.Log.Debugf("Falling back to calculating SHA for %s using %s\n", assetName, url)
+	log.L.Debugf("Falling back to calculating SHA for %s using %s\n", assetName, url)
 	sha, err := c.getShaFromURL(assetName, url)
 	if err != nil {
-		c.Log.Error(err)
+		log.L.Error(err)
 		return ""
 	}
 
@@ -77,12 +75,12 @@ func (c *ChecksumService) preLoadFromAssets(assets []ghApi.ReleaseAsset) {
 		if strings.Contains(asset.GetName(), "checksums") {
 			reader, err := c.downloadFile(asset.GetName(), asset.GetBrowserDownloadURL())
 			if err != nil {
-				c.Log.Errorf("Could not download checksums: %v", err)
+				log.L.Errorf("Could not download checksums: %v", err)
 			}
 			defer reader.Close()
 			checksumBytes, err := ioutil.ReadAll(reader)
 			if err != nil {
-				c.Log.Errorf("Could not download checksums: %v", err)
+				log.L.Errorf("Could not download checksums: %v", err)
 			}
 			checksums = string(checksumBytes)
 
@@ -90,11 +88,11 @@ func (c *ChecksumService) preLoadFromAssets(assets []ghApi.ReleaseAsset) {
 		if strings.Contains(asset.GetName(), "sha256") {
 			csReader, err := c.downloadFile(asset.GetName(), asset.GetBrowserDownloadURL())
 			if err != nil {
-				c.Log.Errorf("Could not download checksums: %v", csReader)
+				log.L.Errorf("Could not download checksums: %v", csReader)
 			}
 			csBytes, err := ioutil.ReadAll(csReader)
 			if err != nil {
-				c.Log.Errorf("Could not download checksums: %v", err)
+				log.L.Errorf("Could not download checksums: %v", err)
 			}
 			csStr := string(csBytes)
 
@@ -110,7 +108,7 @@ func (c *ChecksumService) preLoadFromAssets(assets []ghApi.ReleaseAsset) {
 			continue
 		}
 		x := strings.Fields(strings.TrimSpace(line))
-		c.Log.Debugf("SHA line: %s len: %d", x, len(x))
+		log.L.Debugf("SHA line: %s len: %d", x, len(x))
 
 		if len(x) < 2 {
 			continue
@@ -128,16 +126,15 @@ func (c *ChecksumService) downloadFile(assetName, url string) (io.ReadCloser, er
 	path := fmt.Sprintf("/tmp/gofish-bot/%s-%s-%s-%s", c.application.Organization, c.application.Name, c.application.ReleaseName, assetName)
 
 	if _, err := os.Stat(path); err == nil {
-		c.Log.Debugf("Getting from cache: %s", url)
+		log.L.Debugf("Getting from cache: %s", url)
 		return getFile(path)
 	}
 
-	c.Log.Debugf("Downloading: %s to %s", url, path)
-	req, err := http.NewRequest(http.MethodGet, url, nil)
+	log.L.Debugf("Downloading: %s to %s", url, path)
+	req, err := c.ghClient.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("Authorization", "token "+c.githubToken)
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {

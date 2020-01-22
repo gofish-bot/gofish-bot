@@ -1,15 +1,18 @@
 package gofishgithub
 
 import (
-	"github.com/sirupsen/logrus"
 	"context"
 	"fmt"
 
+	"github.com/gobuffalo/envy"
+	"golang.org/x/oauth2"
+
 	"github.com/pkg/errors"
 
+	"github.com/gofish-bot/gofish-bot/log"
+	"github.com/gofish-bot/gofish-bot/models"
 	"github.com/google/go-github/v26/github"
 	ghApi "github.com/google/go-github/v26/github"
-	"github.com/gofish-bot/gofish-bot/models"
 )
 
 type GoFish struct {
@@ -19,7 +22,19 @@ type GoFish struct {
 	FoodOrg     string
 	AuthorName  string
 	AuthorEmail string
-	Log 		*logrus.Logger
+}
+
+func CreateClient(ctx context.Context) *ghApi.Client {
+	githubToken, err := envy.MustGet("GITHUB_TOKEN")
+	if err != nil {
+		log.G(ctx).Fatalf("Error getting Github token: %v", err)
+	}
+
+	ts := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: githubToken},
+	)
+	tc := oauth2.NewClient(ctx, ts)
+	return ghApi.NewClient(tc)
 }
 
 // https://godoc.org/github.com/google/go-github/github#example-RepositoriesService-CreateFile
@@ -53,7 +68,7 @@ func (p *GoFish) CreatePullRequest(ctx context.Context, application *models.Appl
 }
 
 func (p *GoFish) updateFile(ctx context.Context, application *models.Application, fileContent []byte, branch string) error {
-	p.Log.Debug("Updating File")
+	log.G(ctx).Debug("Updating File")
 
 	getOpts := &github.RepositoryContentGetOptions{Ref: branch}
 	res, _, _, err := p.Client.Repositories.GetContents(ctx, p.BotOrg, p.FoodRepo, fmt.Sprintf("Food/%s.lua", application.Name), getOpts)
@@ -78,7 +93,7 @@ func (p *GoFish) updateFile(ctx context.Context, application *models.Application
 }
 
 func (p *GoFish) createFile(ctx context.Context, application *models.Application, fileContent []byte, branch string) error {
-	p.Log.Debug("Creating new File")
+	log.G(ctx).Debug("Creating new File")
 
 	opts := &github.RepositoryContentFileOptions{
 		Message:   github.String(fmt.Sprintf("%s %s", application.Name, application.Version)),
@@ -96,7 +111,7 @@ func (p *GoFish) createFile(ctx context.Context, application *models.Application
 }
 
 func (p *GoFish) createNewBranch(ctx context.Context, application *models.Application, branch string) error {
-	p.Log.Debugf("Creating new Branch %s\n", branch)
+	log.G(ctx).Debugf("Creating new Branch %s\n", branch)
 
 	ref, _, err := p.Client.Git.GetRef(ctx, p.BotOrg, p.FoodRepo, "refs/heads/master")
 	if err != nil {
@@ -114,7 +129,7 @@ func (p *GoFish) createNewBranch(ctx context.Context, application *models.Applic
 }
 
 func (p *GoFish) newPullRequest(ctx context.Context, application *models.Application, branch, body string) error {
-	p.Log.Debugf("Sending pull request\n")
+	log.G(ctx).Debugf("Sending pull request\n")
 	newPR := &github.NewPullRequest{
 		Title:               github.String(fmt.Sprintf("%s %s", application.Name, application.Version)),
 		Head:                github.String(p.BotOrg + ":" + branch),
@@ -128,6 +143,6 @@ func (p *GoFish) newPullRequest(ctx context.Context, application *models.Applica
 		return err
 	}
 
-	p.Log.Infof("PR created: %s\n", pr.GetHTMLURL())
+	log.G(ctx).Infof("PR created: %s\n", pr.GetHTMLURL())
 	return nil
 }
