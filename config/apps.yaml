@@ -16,10 +16,6 @@
   org: syntaqx
   arch: x86_64
 
-- repo: skaffold
-  org: GoogleContainerTools
-  arch: amd64
-
 - repo: dep
   org: golang
   arch: amd64

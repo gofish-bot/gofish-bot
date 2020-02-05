@@ -75,7 +75,7 @@ func (c *ChecksumService) preLoadFromAssets(assets []ghApi.ReleaseAsset) {
 		if strings.Contains(asset.GetName(), "checksums") {
 			reader, err := c.downloadFile(asset.GetName(), asset.GetBrowserDownloadURL())
 			if err != nil {
-				log.L.Errorf("Could not download checksums: %v", err)
+				log.L.Errorf("Could not download checksums: %s %v", asset.GetBrowserDownloadURL(), err)
 			}
 			defer reader.Close()
 			checksumBytes, err := ioutil.ReadAll(reader)

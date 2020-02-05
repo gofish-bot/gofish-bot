@@ -108,12 +108,20 @@ func getApps(path, target string) []models.DesiredApp {
 	if err != nil {
 		log.L.Fatalf("Unmarshal: %v", err)
 	}
+
+	for i, app := range c {
+		if app.Name == "" {
+			app.Name = app.Repo
+			c[i] = app
+		}
+	}
+
 	if target == "" {
 		return c
 	}
 
 	for _, app := range c {
-		if app.Repo == target {
+		if app.Name == target {
 			return []models.DesiredApp{app}
 		}
 	}

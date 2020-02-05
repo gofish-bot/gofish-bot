@@ -100,7 +100,8 @@ func (g *Github) CreateApplication(ctx context.Context, app models.DesiredApp) (
 
 	var application = models.Application{
 		ReleaseName:  releaseName,
-		Name:         app.Repo,
+		Name:         app.Name,
+		Repo:         app.Repo,
 		Description:  repoDetails.GetDescription(),
 		Organization: app.Org,
 		Path:         app.Path,
@@ -117,7 +118,7 @@ func (g *Github) CreateApplication(ctx context.Context, app models.DesiredApp) (
 }
 
 func (g *Github) CreateLuaFile(ctx context.Context, application *models.Application) {
-	f, err := os.Create("/usr/local/Fish/Rigs/github.com/fishworks/fish-food/Food/" + application.Name + ".lua")
+	f, err := os.Create("/usr/local/gofish/Rigs/github.com/fishworks/fish-food/Food/" + application.Name + ".lua")
 	if err != nil {
 		log.G(ctx).Warn(err)
 		return

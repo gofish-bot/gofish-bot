@@ -14,7 +14,7 @@ func Table(applications []*models.Application) {
 	headerFmt := color.New(color.FgGreen, color.Underline).SprintfFunc()
 	columnFmt := color.New(color.FgYellow).SprintfFunc()
 
-	tbl := table.New("Org", "Repo", "CurrentVersion", "NewRelease", "Status")
+	tbl := table.New("Name", "Repo", "Org", "CurrentVersion", "NewRelease", "Status")
 	tbl.WithHeaderFormatter(headerFmt).WithFirstColumnFormatter(columnFmt)
 
 	for _, app := range applications {
@@ -28,7 +28,7 @@ func Table(applications []*models.Application) {
 		} else if app.CurrentVersion == "" {
 			status = "Missing"
 		}
-		tbl.AddRow(app.Organization, app.Name, app.CurrentVersion, app.Version, status)
+		tbl.AddRow(app.Name, app.Repo, app.Organization, app.CurrentVersion, app.Version, status)
 	}
 
 	tbl.Print()

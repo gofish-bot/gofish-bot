@@ -27,7 +27,7 @@ func (g *Generic) UpdateApplications(ctx context.Context, appsGithub []models.De
 	for _, app := range appsGithub {
 		application, err := g.CreateApplication(ctx, app)
 		if err != nil {
-			log.G(ctx).Warnf("Error in handling %s: %v", app.Repo, err)
+			log.G(ctx).Warnf("Error in handling %s: %v", app.Name, err)
 		} else {
 			currentVersion, err := g.GoFish.GetCurrentVersion(ctx, app)
 			if err != nil {
@@ -82,7 +82,7 @@ func (g *Generic) UpdateApplications(ctx context.Context, appsGithub []models.De
 }
 
 func (g *Generic) CreateApplication(ctx context.Context, app models.DesiredApp) (*models.Application, error) {
-	log.G(ctx).Infof("## Creating Application for %s", app.Repo)
+	log.G(ctx).Infof("## Creating Application for %s", app.Name)
 
 	releaseList, _, err := g.GoFish.Client.Repositories.ListReleases(ctx, app.Org, app.Repo, &ghApi.ListOptions{})
 	if err != nil {
@@ -104,22 +104,25 @@ func (g *Generic) CreateApplication(ctx context.Context, app models.DesiredApp) 
 	}
 
 	var application = models.Application{
-		ReleaseName:  releaseName,
-		Name:         app.Repo,
-		Description:  repoDetails.GetDescription(),
-		Organization: app.Org,
-		Version:      strings.Replace(releaseName, "v", "", 1),
-		Arch:         app.Arch,
-		Licence:      repoDetails.GetLicense().GetSPDXID(),
-		Homepage:     homepage,
-		Assets:       []models.Asset{},
+		ReleaseName:        releaseName,
+		ReleaseDescription: release.GetBody(),
+		ReleaseLink:        release.GetHTMLURL(),
+		Name:               app.Name,
+		Repo:               app.Repo,
+		Description:        repoDetails.GetDescription(),
+		Organization:       app.Org,
+		Version:            strings.Replace(releaseName, "v", "", 1),
+		Arch:               app.Arch,
+		Licence:            repoDetails.GetLicense().GetSPDXID(),
+		Homepage:           homepage,
+		Assets:             []models.Asset{},
 	}
 
 	return &application, nil
 }
 
 func (g *Generic) CreateLuaFile(ctx context.Context, application *models.Application, content string) {
-	err := ioutil.WriteFile("/usr/local/Fish/Rigs/github.com/fishworks/fish-food/Food/"+application.Name+".lua", []byte(content), 0644)
+	err := ioutil.WriteFile("/usr/local/gofish/Rigs/github.com/fishworks/fish-food/Food/"+application.Name+".lua", []byte(content), 0644)
 	if err != nil {
 		log.G(ctx).Warn(err)
 		return

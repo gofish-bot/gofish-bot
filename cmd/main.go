@@ -25,6 +25,21 @@ import (
 	"github.com/urfave/cli"
 )
 
+const tmpDir = "/tmp/gofish-bot"
+
+func init() {
+	mkDir(tmpDir)
+}
+
+func mkDir(path string) {
+	err := os.MkdirAll(tmpDir, os.ModePerm)
+	if err == nil || os.IsExist(err) {
+		return
+	} else {
+		panic(err)
+	}
+}
+
 func main() {
 	var verbose bool
 	var githubPath string
@@ -90,10 +105,10 @@ func main() {
 		tc := oauth2.NewClient(ctx, ts)
 
 		client := ghApi.NewClient(tc)
-		_ = client
 
 		// Github
 		app := models.DesiredApp{
+			Name: strings.Split(u.Path, "/")[2],
 			Repo: strings.Split(u.Path, "/")[2],
 			Org:  strings.Split(u.Path, "/")[1],
 			Arch: arch,
@@ -116,7 +131,7 @@ func main() {
 
 		application, err := g.CreateApplication(ctx, app)
 		if err != nil {
-			log.G(ctx).Errorf("Error handling: %s", app.Repo)
+			log.G(ctx).Errorf("Error handling: %s", app.Name)
 		}
 
 		headerFmt := color.New(color.FgGreen, color.Underline).SprintfFunc()

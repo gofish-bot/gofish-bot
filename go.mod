@@ -12,7 +12,7 @@ require (
 	github.com/fishworks/gofish v0.10.0
 	github.com/go-yaml/yaml v2.1.0+incompatible
 	github.com/gobuffalo/envy v1.7.0
-	github.com/google/go-cmp v0.3.0 // indirect
+	github.com/google/go-cmp v0.3.0
 	github.com/google/go-github/v26 v26.1.3
 	github.com/gotestyourself/gotestyourself v2.2.0+incompatible // indirect
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect

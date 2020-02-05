@@ -34,7 +34,7 @@ func (h *HashiCorp) UpdateApplications(ctx context.Context, appsGithub []models.
 	for _, app := range appsGithub {
 		application, err := h.CreateApplication(ctx, app)
 		if err != nil {
-			log.G(ctx).Warnf("Error in handling %s: %v", app.Repo, err)
+			log.G(ctx).Warnf("Error in handling %s: %v", app.Name, err)
 		} else {
 			currentVersion, err := h.GoFish.GetCurrentVersion(ctx, app)
 			if err != nil {
@@ -80,14 +80,14 @@ func (h *HashiCorp) UpdateApplications(ctx context.Context, appsGithub []models.
 }
 
 func (h *HashiCorp) CreateApplication(ctx context.Context, app models.DesiredApp) (*models.Application, error) {
-	log.G(ctx).Infof("## Creating Application for %s", app.Repo)
+	log.G(ctx).Infof("## Creating Application for %s", app.Name)
 
-	tagList, _, err := h.GoFish.Client.Repositories.ListTags(ctx, app.Org, app.Repo, &ghApi.ListOptions{})
+	tagList, _, err := h.GoFish.Client.Repositories.ListTags(ctx, app.Org, app.Name, &ghApi.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
 
-	repoDetails, _, err := h.GoFish.Client.Repositories.Get(ctx, app.Org, app.Repo)
+	repoDetails, _, err := h.GoFish.Client.Repositories.Get(ctx, app.Org, app.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +97,7 @@ func (h *HashiCorp) CreateApplication(ctx context.Context, app models.DesiredApp
 	releaseName := release.GetName()
 	cleanVersion := strings.Replace(releaseName, "v", "", 1)
 
-	checksums, err = h.downloadFile(ctx, fmt.Sprintf("https://releases.hashicorp.com/%s/%s/%s_%s_SHA256SUMS", app.Repo, cleanVersion, app.Repo, cleanVersion))
+	checksums, err = h.downloadFile(ctx, fmt.Sprintf("https://releases.hashicorp.com/%s/%s/%s_%s_SHA256SUMS", app.Name, cleanVersion, app.Name, cleanVersion))
 	if err != nil {
 		return nil, errors.Wrap(err, "Could not download checksums")
 	}
@@ -116,7 +116,7 @@ func (h *HashiCorp) CreateApplication(ctx context.Context, app models.DesiredApp
 }
 
 func (h *HashiCorp) CreateLuaFile(ctx context.Context, application *models.Application) {
-	f, err := os.Create("/usr/local/Fish/Rigs/github.com/fishworks/fish-food/Food/" + application.Name + ".lua")
+	f, err := os.Create("/usr/local/gofish/Rigs/github.com/fishworks/fish-food/Food/" + application.Name + ".lua")
 	if err != nil {
 		log.G(ctx).Warn(err)
 		return
@@ -134,10 +134,14 @@ func (h *HashiCorp) CreatePullRequest(ctx context.Context, application *models.A
 
 	var b bytes.Buffer
 	foo := bufio.NewWriter(&b)
-	newCreateHashicorp(application, foo)
+	err := newCreateHashicorp(application, foo)
+	if err != nil {
+		log.G(ctx).Warnf("Failed creating Lua file: %v", err)
+		return
+	}
 	foo.Flush()
 
-	err := h.GoFish.CreatePullRequest(ctx, application, b.Bytes())
+	err = h.GoFish.CreatePullRequest(ctx, application, b.Bytes())
 	if err != nil {
 		log.G(ctx).Warnf("Failed creating PR: %v", err)
 		return
@@ -150,7 +154,8 @@ func (h *HashiCorp) createApplication(app models.DesiredApp, description, licenc
 	assets := []models.Asset{}
 	var application = models.Application{
 		ReleaseName:    version,
-		Name:           app.Repo,
+		Name:           app.Name,
+		Repo:           app.Repo,
 		Description:    description,
 		Organization:   app.Org,
 		Version:        cleanVersion,

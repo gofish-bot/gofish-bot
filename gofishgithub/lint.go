@@ -16,7 +16,7 @@ import (
 
 func (p *GoFish) Lint(app *models.Application) error {
 
-	bytes, err := ioutil.ReadFile("/usr/local/Fish/Rigs/github.com/fishworks/fish-food/Food/" + app.Name + ".lua")
+	bytes, err := ioutil.ReadFile("/usr/local/gofish/Rigs/github.com/fishworks/fish-food/Food/" + app.Name + ".lua")
 	if err != nil {
 		return err
 	}

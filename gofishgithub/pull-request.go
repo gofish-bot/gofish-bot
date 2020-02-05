@@ -47,6 +47,9 @@ func (p *GoFish) CreatePullRequest(ctx context.Context, application *models.Appl
 		return err
 	}
 	body := fmt.Sprintf("Updating package %s to release %s.", application.Name, application.ReleaseName)
+	if application.ReleaseDescription != "" {
+		body = fmt.Sprintf("Updating package %s to release %s. \n\n# Release info \n\n %s", application.Name, application.ReleaseName, application.ReleaseDescription)
+	}
 	if application.CurrentVersion != "" {
 		err = p.updateFile(ctx, application, fileContent, branch)
 		if err != nil {

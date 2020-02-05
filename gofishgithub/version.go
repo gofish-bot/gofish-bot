@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/google/go-github/v26/github"
 	"github.com/gofish-bot/gofish-bot/models"
+	"github.com/google/go-github/v26/github"
 
 	"github.com/fishworks/gofish"
 	"github.com/yuin/gluamapper"
@@ -18,7 +18,7 @@ func (p *GoFish) GetCurrentVersion(ctx context.Context, app models.DesiredApp) (
 
 func (p *GoFish) getVersion(ctx context.Context, app models.DesiredApp, ref string) (string, error) {
 
-	food, err := p.getFood(ctx, app.Repo, ref)
+	food, err := p.getFood(ctx, app.Name, ref)
 	if err != nil {
 		return "", err
 	}
@@ -50,8 +50,8 @@ func (p *GoFish) GetAsFood(content string) (*gofish.Food, error) {
 	return &food, nil
 }
 
-func (p *GoFish) getFood(ctx context.Context, appRepo string, ref string) (*gofish.Food, error) {
-	content, err := p.getContent(ctx, appRepo, ref)
+func (p *GoFish) getFood(ctx context.Context, appName string, ref string) (*gofish.Food, error) {
+	content, err := p.getContent(ctx, appName, ref)
 	if err != nil {
 		return nil, err
 	}
@@ -68,10 +68,10 @@ func (p *GoFish) getFood(ctx context.Context, appRepo string, ref string) (*gofi
 	return &food, nil
 }
 
-func (p *GoFish) getContent(ctx context.Context, appRepo string, ref string) (string, error) {
+func (p *GoFish) getContent(ctx context.Context, appName string, ref string) (string, error) {
 
 	getOpts := &github.RepositoryContentGetOptions{Ref: ref}
-	res, _, _, err := p.Client.Repositories.GetContents(ctx, p.FoodOrg, p.FoodRepo, fmt.Sprintf("Food/%s.lua", appRepo), getOpts)
+	res, _, _, err := p.Client.Repositories.GetContents(ctx, p.FoodOrg, p.FoodRepo, fmt.Sprintf("Food/%s.lua", appName), getOpts)
 	if err != nil {
 		return "", err
 	}

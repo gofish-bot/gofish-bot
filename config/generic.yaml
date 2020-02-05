@@ -17,7 +17,10 @@
 # Assets has both zip and tar and win exe not in tar.. :s
 - repo: kompose
   org: kubernetes
-  
+
+- repo: skaffold
+  org: GoogleContainerTools
+
 - repo: chartmuseum
   org: helm
 
@@ -32,14 +35,18 @@
   arch: amd64
   onlyprerelease: true
 
+- repo: istio
+  org: istio
+  name: istioctl
+
+- repo: brigade
+  org: Azure
+  name: brig
+  arch: amd64
+
 # Helm is now in version 3...
 # - repo: helm
 #   org: helm
-
-# Name is different from repo
-# - repo: istio
-#   org: istio
-#   name: istioctl
 
 # Zip not published on jetbrains https://github.com/fishworks/fish-food/issues/323
 # - repo: delve
@@ -59,6 +66,3 @@
 #   arch: ""
 
 ## BAD - git repo has different name from lua file
-# - repo: brigade
-#   org: brigadecore
-#   arch: amd64
