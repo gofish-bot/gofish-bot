@@ -1,13 +1,14 @@
 package main
 
 import (
-	"bytes"
 	"context"
+	"io/ioutil"
 	"net/url"
 	"os"
-	"os/exec"
+	"path"
 	"strings"
 
+	"github.com/fishworks/gofish"
 	"github.com/gofish-bot/gofish-bot/gofishgithub"
 
 	"github.com/gofish-bot/gofish-bot/log"
@@ -41,8 +42,10 @@ func mkDir(path string) {
 }
 
 func main() {
+	var clean bool
 	var verbose bool
 	var githubPath string
+	var name string
 	var arch string
 	var path string
 	var apply bool
@@ -61,6 +64,11 @@ func main() {
 			Destination: &githubPath,
 			Required:    true,
 		}, cli.StringFlag{
+			Name:        "name, n",
+			Usage:       "alternative name for the food",
+			Destination: &name,
+			Required:    false,
+		}, cli.StringFlag{
 			Name:        "arch",
 			Usage:       "Arch",
 			Value:       "amd64",
@@ -74,6 +82,10 @@ func main() {
 			Name:        "verbose",
 			Usage:       "Full debug log",
 			Destination: &verbose,
+		}, cli.BoolFlag{
+			Name:        "clean, c",
+			Usage:       "Clear all cached packages",
+			Destination: &clean,
 		},
 	}
 
@@ -82,6 +94,11 @@ func main() {
 
 		if verbose {
 			log.G(ctx).Logger.SetLevel(logrus.DebugLevel)
+		}
+
+		if clean {
+			clearDir(tmpDir)
+			clearDir(gofish.UserHome(gofish.UserHomePath).Cache())
 		}
 
 		u, err := url.Parse(githubPath)
@@ -105,12 +122,18 @@ func main() {
 		tc := oauth2.NewClient(ctx, ts)
 
 		client := ghApi.NewClient(tc)
+		org := strings.Split(u.Path, "/")[1]
+		repo := strings.Split(u.Path, "/")[2]
+
+		if name == "" {
+			name = repo
+		}
 
 		// Github
 		app := models.DesiredApp{
-			Name: strings.Split(u.Path, "/")[2],
-			Repo: strings.Split(u.Path, "/")[2],
-			Org:  strings.Split(u.Path, "/")[1],
+			Name: name,
+			Repo: repo,
+			Org:  org,
 			Arch: arch,
 			Path: path,
 		}
@@ -144,7 +167,6 @@ func main() {
 		tbl.Print()
 
 		g.CreateLuaFile(ctx, application)
-		runLint(application)
 
 		err = g.GoFish.Lint(application)
 		if err != nil {
@@ -164,12 +186,17 @@ func main() {
 		log.L.Fatal(err)
 	}
 }
-func runLint(application *models.Application) {
-	cmd := exec.Command("gofish", "lint", application.Name)
-	var out bytes.Buffer
-	cmd.Stdout = &out
-	err := cmd.Run()
+
+func clearDir(dir string) error {
+	log.L.Debugf("Cleaning: %s", dir)
+	names, err := ioutil.ReadDir(dir)
 	if err != nil {
-		log.L.Error("linting failed")
+		return err
 	}
+	for _, entery := range names {
+		file := path.Join([]string{dir, entery.Name()}...)
+		log.L.Debugf(" - deleting: %s", file)
+		os.RemoveAll(file)
+	}
+	return nil
 }

@@ -28,10 +28,6 @@
   org: davrodpin
   arch: amd64
 
-- repo: polaris
-  org: FairwindsOps
-  arch: x86_64
-
 - repo: devdash
   org: Phantas0s
   arch: x86_64
@@ -40,6 +36,10 @@
   org: kubernetes-sigs
   arch: amd64
 
-- repo: kubebuilder
-  org: kubernetes-sigs
+- repo: jenkins-cli
+  name: jcli
+  org: jenkins-zh
   arch: amd64
+
+- repo: anycable-go
+  org: anycable

@@ -63,6 +63,7 @@ func (c *ChecksumService) downloadFile(assetName, url string) (io.ReadCloser, er
 
 	if _, err := os.Stat(path); err == nil {
 		log.L.Debugf("Getting from cache: %s", url)
+		log.L.Debugf(" - path : %s", path)
 		return getFile(path)
 	}
 

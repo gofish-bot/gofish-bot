@@ -4,6 +4,7 @@ go 1.12
 
 require (
 	github.com/Microsoft/go-winio v0.4.13 // indirect
+	github.com/blang/semver v3.5.1+incompatible
 	github.com/containerd/continuity v0.0.0-20190426062206-aaeac12a7ffc // indirect
 	github.com/docker/docker v0.7.3-0.20180421000811-cf9c48bb3ecf // indirect
 	github.com/docker/go-units v0.4.0 // indirect

@@ -4,7 +4,9 @@ import (
 	"context"
 	"io/ioutil"
 	"os"
+	"path"
 
+	"github.com/fishworks/gofish"
 	"github.com/gofish-bot/gofish-bot/gofishgithub"
 	"github.com/sirupsen/logrus"
 
@@ -36,6 +38,7 @@ func mkDir(path string) {
 
 func main() {
 
+	var clean bool
 	var apply bool
 	var verbose bool
 	var target string
@@ -56,6 +59,10 @@ func main() {
 			Name:        "verbose",
 			Usage:       "Full debug log",
 			Destination: &verbose,
+		}, cli.BoolFlag{
+			Name:        "clean, c",
+			Usage:       "Clear all cached packages",
+			Destination: &clean,
 		},
 	}
 
@@ -63,6 +70,11 @@ func main() {
 
 		if verbose {
 			log.L.Logger.SetLevel(logrus.DebugLevel)
+		}
+
+		if clean {
+			clearDir(tmpDir)
+			clearDir(gofish.UserHome(gofish.UserHomePath).Cache())
 		}
 
 		ctx := context.Background()
@@ -127,4 +139,18 @@ func getApps(path, target string) []models.DesiredApp {
 	}
 
 	return []models.DesiredApp{}
+}
+
+func clearDir(dir string) error {
+	log.L.Debugf("Cleaning: %s", dir)
+	names, err := ioutil.ReadDir(dir)
+	if err != nil {
+		return err
+	}
+	for _, entery := range names {
+		file := path.Join([]string{dir, entery.Name()}...)
+		log.L.Debugf(" - deleting: %s", file)
+		os.RemoveAll(file)
+	}
+	return nil
 }

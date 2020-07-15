@@ -7,6 +7,7 @@ import (
 	"os"
 	"sort"
 
+	"github.com/blang/semver"
 	"github.com/pkg/errors"
 
 	"github.com/gofish-bot/gofish-bot/gofishgithub"
@@ -30,7 +31,7 @@ func (g *Github) UpdateApplications(ctx context.Context, appsGithub []models.Des
 	for _, app := range appsGithub {
 		application, err := g.CreateApplication(ctx, app)
 		if err != nil {
-			log.G(ctx).Warnf("Error in handling %s: %v", app.Repo, err)
+			log.G(ctx).Warnf("Error in handling %s: %v", app.Name, err)
 		} else {
 			currentVersion, err := g.GoFish.GetCurrentVersion(ctx, app)
 			if err != nil {
@@ -56,7 +57,7 @@ func (g *Github) UpdateApplications(ctx context.Context, appsGithub []models.Des
 
 				err := g.GoFish.Lint(app)
 				if err != nil {
-					log.G(ctx).Warnf("Linting failed: %v", err)
+					log.G(ctx).Warnf("Linting failed: '%v'", err)
 					continue
 				} else {
 					log.G(ctx).Infof("Linting ok: %v", app.Name)
@@ -77,7 +78,7 @@ func (g *Github) UpdateApplications(ctx context.Context, appsGithub []models.Des
 }
 
 func (g *Github) CreateApplication(ctx context.Context, app models.DesiredApp) (*models.Application, error) {
-	log.G(ctx).Infof("## Creating Application for %s", app.Repo)
+	log.G(ctx).Infof("## Creating Application for %s", app.Name)
 
 	releaseList, _, err := g.GoFish.Client.Repositories.ListReleases(ctx, app.Org, app.Repo, &ghApi.ListOptions{})
 	if err != nil {
@@ -99,26 +100,27 @@ func (g *Github) CreateApplication(ctx context.Context, app models.DesiredApp) (
 	}
 
 	var application = models.Application{
-		ReleaseName:  releaseName,
-		Name:         app.Name,
-		Repo:         app.Repo,
-		Description:  repoDetails.GetDescription(),
-		Organization: app.Org,
-		Path:         app.Path,
-		Version:      strings.Replace(releaseName, "v", "", 1),
-		Arch:         app.Arch,
-		Licence:      repoDetails.GetLicense().GetSPDXID(),
-		Homepage:     homepage,
-		Assets:       []models.Asset{},
+		ReleaseName:        releaseName,
+		ReleaseDescription: release.GetBody(),
+		Name:               app.Name,
+		Repo:               app.Repo,
+		Description:        repoDetails.GetDescription(),
+		Organization:       app.Org,
+		Path:               app.Path,
+		Version:            strings.Replace(releaseName, "v", "", 1),
+		Arch:               app.Arch,
+		Licence:            repoDetails.GetLicense().GetSPDXID(),
+		Homepage:           homepage,
+		Assets:             []models.Asset{},
 	}
 
 	checksumService := NewChecksumService(application, g.GoFish.Client, release.Assets)
-	application.Assets = g.GetAssets(application, release.Assets, checksumService)
+	application.Assets = g.GetAssets(ctx, application, release.Assets, checksumService)
 	return &application, nil
 }
 
 func (g *Github) CreateLuaFile(ctx context.Context, application *models.Application) {
-	f, err := os.Create("/usr/local/gofish/Rigs/github.com/fishworks/fish-food/Food/" + application.Name + ".lua")
+	f, err := os.Create("/usr/local/gofish/tmp/github.com/fmotrifork/fish-food/Food/" + application.Name + ".lua")
 	if err != nil {
 		log.G(ctx).Warn(err)
 		return
@@ -152,6 +154,22 @@ func (g *Github) CreatePullRequest(ctx context.Context, application *models.Appl
 }
 
 func findRelease(app models.DesiredApp, releaseList []*ghApi.RepositoryRelease) *ghApi.RepositoryRelease {
+
+	release := releaseList[0]
+	newestRelease, _ := semver.Make("0.0.0")
+
+	for _, v := range releaseList {
+		releaseVersion, err := semver.Make(strings.Replace(v.GetTagName(), "v", "", 1))
+		if err != nil {
+			continue
+		}
+
+		if releaseVersion.GT(newestRelease) && len(releaseVersion.Pre) == 0 {
+			newestRelease = releaseVersion
+			release = v
+		}
+	}
+
 	if app.Onlyprerelease {
 		for k, v := range releaseList {
 			if v.GetPrerelease() {
@@ -160,22 +178,15 @@ func findRelease(app models.DesiredApp, releaseList []*ghApi.RepositoryRelease) 
 			return releaseList[k]
 		}
 	}
-	return releaseList[0]
-
-	// for _, release := range releaseList {
-	// 	fmt.Printf("Release %s\n", release.GetTagName())
-	// 	if !strings.Contains(release.GetTagName(), "beta") {
-	// 		return release
-	// 	}
-	// }
-	// return releaseList[0]
+	return release
 }
 
-func (g *Github) GetAssets(app models.Application, releaseAssets []github.ReleaseAsset, checksumService *ChecksumService) []models.Asset {
+func (g *Github) GetAssets(ctx context.Context, app models.Application, releaseAssets []github.ReleaseAsset, checksumService *ChecksumService) []models.Asset {
 
 	assets := []models.Asset{}
 
 	for _, c := range releaseAssets {
+		log.G(ctx).Debugf("Asset: %s ", *c.Name)
 		if strings.Contains(c.GetName(), "sha256") || strings.Contains(c.GetName(), "sha512") {
 			continue
 		}
@@ -187,7 +198,10 @@ func (g *Github) GetAssets(app models.Application, releaseAssets []github.Releas
 			path = strings.Replace(c.GetName(), app.Name, "name .. \"", 1) + "\""
 		}
 
+		log.G(ctx).Debugf("Clean asset name: %s ", cleanName)
+
 		if (strings.Contains(cleanName, "osx") || strings.Contains(cleanName, "darwin") || strings.Contains(cleanName, "macos")) && strings.Contains(cleanName, app.Arch) {
+			log.G(ctx).Debugf(" - OSX asset %s ", *c.Name)
 			assets = append(assets, models.Asset{
 				Arch:        "amd64",
 				Os:          "darwin",
@@ -199,6 +213,7 @@ func (g *Github) GetAssets(app models.Application, releaseAssets []github.Releas
 			})
 
 		} else if strings.Contains(cleanName, "linux") && strings.Contains(cleanName, app.Arch) {
+			log.G(ctx).Debugf(" - linux asset %s ", *c.Name)
 			assets = append(assets, models.Asset{
 				Arch:        "amd64",
 				Os:          "linux",
@@ -209,6 +224,7 @@ func (g *Github) GetAssets(app models.Application, releaseAssets []github.Releas
 				Executable:  true,
 			})
 		} else if (strings.Contains(cleanName, "win") || strings.Contains(cleanName, "windows")) && strings.Contains(cleanName, app.Arch) {
+			log.G(ctx).Debugf(" - windows asset %s ", *c.Name)
 			if strings.Contains(cleanName, "tar") || strings.Contains(cleanName, "zip") {
 				path = "name .. \".exe\""
 			}

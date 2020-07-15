@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 
+	"github.com/blang/semver"
 	"github.com/pkg/errors"
 
 	"github.com/gofish-bot/gofish-bot/gofishgithub"
@@ -43,7 +44,6 @@ func (g *Generic) UpdateApplications(ctx context.Context, appsGithub []models.De
 	printer.Table(applications)
 
 	for _, app := range applications {
-
 		if app.CurrentVersion != app.Version {
 
 			checksumService := NewChecksumService(*app, g.GoFish.Client)
@@ -57,12 +57,17 @@ func (g *Generic) UpdateApplications(ctx context.Context, appsGithub []models.De
 			upgradeToBeta := (!strings.Contains(app.CurrentVersion, "beta")) && strings.Contains(app.Version, "beta")
 
 			if needsUpgrade {
-
 				g.CreateLuaFile(ctx, app, content)
 				err = g.GoFish.LintString(app.Name, content)
 				if err != nil {
-					log.G(ctx).Warnf("Linting failed: %v", err)
-					continue
+
+					// Allow generic packages to have fewer packages
+					if strings.Contains(err.Error(), "Bad number of packages") {
+						log.G(ctx).Infof("Linting failed, but continuing: %v", err)
+					} else {
+						log.G(ctx).Warnf("Linting failed: %v", err)
+						continue
+					}
 				} else {
 					log.G(ctx).Infof("Linting ok: %v", app.Name)
 				}
@@ -122,12 +127,10 @@ func (g *Generic) CreateApplication(ctx context.Context, app models.DesiredApp) 
 }
 
 func (g *Generic) CreateLuaFile(ctx context.Context, application *models.Application, content string) {
-	err := ioutil.WriteFile("/usr/local/gofish/Rigs/github.com/fishworks/fish-food/Food/"+application.Name+".lua", []byte(content), 0644)
+	err := ioutil.WriteFile("/usr/local/gofish/tmp/github.com/fmotrifork/fish-food/Food/"+application.Name+".lua", []byte(content), 0644)
 	if err != nil {
 		log.G(ctx).Warn(err)
-		return
 	}
-	return
 }
 
 func (g *Generic) CreatePullRequest(ctx context.Context, application *models.Application, content string) {
@@ -141,7 +144,22 @@ func (g *Generic) CreatePullRequest(ctx context.Context, application *models.App
 }
 
 func findRelease(app models.DesiredApp, releaseList []*ghApi.RepositoryRelease) *ghApi.RepositoryRelease {
-	release := releaseList[0]
+
+	var release *ghApi.RepositoryRelease
+	newestRelease, _ := semver.Make("0.0.0")
+
+	for _, v := range releaseList {
+		releaseVersion, err := semver.Make(strings.Replace(v.GetTagName(), "v", "", 1))
+		if err != nil {
+			continue
+		}
+
+		if releaseVersion.GT(newestRelease) && len(releaseVersion.Pre) == 0 && !strings.Contains(v.GetTagName(), "edge") {
+			newestRelease = releaseVersion
+			release = v
+		}
+	}
+
 	if app.Onlyprerelease {
 		for k, v := range releaseList {
 			if v.GetPrerelease() {
@@ -149,6 +167,10 @@ func findRelease(app models.DesiredApp, releaseList []*ghApi.RepositoryRelease) 
 			}
 			return releaseList[k]
 		}
+	}
+	if release == nil {
+		log.L.Warnf("Falling back to first release in list: %v", releaseList[0].GetTagName())
+		return releaseList[0]
 	}
 	return release
 }

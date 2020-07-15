@@ -44,9 +44,71 @@
   name: brig
   arch: amd64
 
-# Helm is now in version 3...
-# - repo: helm
-#   org: helm
+- repo: helmfile
+  org: roboll
+
+- repo: cri-tools
+  org: kubernetes-sigs
+  name: crictl
+
+- repo: cri-tools
+  org: kubernetes-sigs
+  name: critest
+
+- repo: fission
+  org: fission
+
+- repo: fzf-bin
+  org: junegunn
+  name: fzf
+
+- repo: kubebuilder
+  org: kubernetes-sigs
+  arch: amd64
+
+- repo: jwt-cli
+  org: mike-engel
+  arch: ""
+
+- repo: eksctl
+  org: weaveworks
+
+- repo: stern
+  org: wercker
+
+- repo: helm
+  org: helm
+
+- repo: argo-cd
+  name: argocd
+  org: argoproj
+
+- repo: polaris
+  org: FairwindsOps
+  arch: amd64
+
+- repo: sealed-secrets
+  name: kubeseal
+  org: bitnami-labs
+
+- repo: flux
+  name: fluxctl
+  org: fluxcd
+
+- repo: jx
+  org: jenkins-x
+
+- repo: k3d
+  org: rancher
+
+# Release not following semantic versioning 
+# - repo: linkerd2
+#   org: linkerd
+#   name: linkerd
+
+# Missing windows releases
+# - repo: letitgo
+#   org: NoUseFreak
 
 # Zip not published on jetbrains https://github.com/fishworks/fish-food/issues/323
 # - repo: delve
@@ -58,11 +120,3 @@
 
 # - repo: go
 #   org: golang
-
-## NEW
-# Assets has path in tar
-# - repo: jwt-cli
-#   org: mike-engel
-#   arch: ""
-
-## BAD - git repo has different name from lua file

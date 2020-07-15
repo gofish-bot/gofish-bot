@@ -116,7 +116,7 @@ func (h *HashiCorp) CreateApplication(ctx context.Context, app models.DesiredApp
 }
 
 func (h *HashiCorp) CreateLuaFile(ctx context.Context, application *models.Application) {
-	f, err := os.Create("/usr/local/gofish/Rigs/github.com/fishworks/fish-food/Food/" + application.Name + ".lua")
+	f, err := os.Create("/usr/local/gofish/tmp/github.com/fmotrifork/fish-food/Food/" + application.Name + ".lua")
 	if err != nil {
 		log.G(ctx).Warn(err)
 		return

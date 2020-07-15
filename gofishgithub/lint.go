@@ -16,7 +16,7 @@ import (
 
 func (p *GoFish) Lint(app *models.Application) error {
 
-	bytes, err := ioutil.ReadFile("/usr/local/gofish/Rigs/github.com/fishworks/fish-food/Food/" + app.Name + ".lua")
+	bytes, err := ioutil.ReadFile("/usr/local/gofish/tmp/github.com/fmotrifork/fish-food/Food/" + app.Name + ".lua")
 	if err != nil {
 		return err
 	}
@@ -36,7 +36,7 @@ func (p *GoFish) lint(name, content string) error {
 		return err
 	}
 
-	if len(food.Packages) != 3 {
+	if len(food.Packages) < 3 {
 		return fmt.Errorf("Linting failed: %s \n - %s", name, "Bad number of packages")
 	}
 
@@ -46,7 +46,7 @@ func (p *GoFish) lint(name, content string) error {
 		for _, err := range errs {
 			e += err.Error() + "\n"
 		}
-		return fmt.Errorf("Linting failed: %s \n - %v", name, e)
+		return fmt.Errorf("Linting failed: %s \n - '%v'", name, e)
 	}
 	log.L.Debugf("Lint ok: %s", name)
 
@@ -63,7 +63,7 @@ func (p *GoFish) lint(name, content string) error {
 		}
 		// get the size
 		size := fi.Size()
-		if size < 1000000 {
+		if size < 100000 {
 			return fmt.Errorf("Linting failed: %s \n - file %s is to small %s", name, cachedFilePath, humanize.Bytes(uint64(size)))
 		}
 	}
