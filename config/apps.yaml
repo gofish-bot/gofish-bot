@@ -8,10 +8,6 @@
   org: deislabs
   arch: amd64
 
-- repo: minikube
-  org: kubernetes
-  arch: amd64
-
 - repo: serve
   org: syntaqx
   arch: x86_64
@@ -43,3 +39,7 @@
 
 - repo: anycable-go
   org: anycable
+
+# Bad version name, with slash in..
+# - repo: kustomize
+#   org: kubernetes-sigs

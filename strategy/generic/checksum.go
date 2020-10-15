@@ -6,9 +6,10 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 
-	ghApi "github.com/google/go-github/v26/github"
+	ghApi "github.com/google/go-github/v32/github"
 
 	"github.com/gofish-bot/gofish-bot/log"
 	"github.com/gofish-bot/gofish-bot/models"
@@ -59,7 +60,7 @@ func (c *ChecksumService) getShaFromURL(assetName, assetURL string) (string, err
 
 func (c *ChecksumService) downloadFile(assetName, url string) (io.ReadCloser, error) {
 
-	path := fmt.Sprintf("/tmp/gofish-bot/%s-%s-%s-%s", c.application.Organization, c.application.Name, c.application.ReleaseName, assetName)
+	path := fmt.Sprintf("/tmp/gofish-bot/%s-%s-%s-%s%s", c.application.Organization, c.application.Name, c.application.ReleaseName, assetName, getExtension(url))
 
 	if _, err := os.Stat(path); err == nil {
 		log.L.Debugf("Getting from cache: %s", url)
@@ -107,4 +108,14 @@ func getFile(path string) (io.ReadCloser, error) {
 	}
 
 	return f, nil
+}
+
+// From github.com/fishworks/gofish@v0.13.0/food.go
+func getExtension(path string) string {
+	urlParts := strings.Split(path, "/")
+	parts := strings.Split(urlParts[len(urlParts)-1], ".")
+	if len(parts) < 2 {
+		return filepath.Ext(path)
+	}
+	return "." + strings.Join([]string{parts[len(parts)-2], parts[len(parts)-1]}, ".")
 }

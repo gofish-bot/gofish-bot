@@ -10,6 +10,7 @@ import (
 	"os"
 	"sort"
 
+	"github.com/blang/semver"
 	"github.com/gofish-bot/gofish-bot/log"
 	"github.com/gofish-bot/gofish-bot/printer"
 
@@ -21,7 +22,7 @@ import (
 
 	"strings"
 
-	ghApi "github.com/google/go-github/v26/github"
+	ghApi "github.com/google/go-github/v32/github"
 )
 
 type HashiCorp struct {
@@ -80,7 +81,7 @@ func (h *HashiCorp) UpdateApplications(ctx context.Context, appsGithub []models.
 }
 
 func (h *HashiCorp) CreateApplication(ctx context.Context, app models.DesiredApp) (*models.Application, error) {
-	log.G(ctx).Infof("## Creating Application for %s", app.Name)
+	log.G(ctx).Infof("## Creating Application for %s: https://github.com/%s/%s/releases/", app.Name, app.Org, app.Repo)
 
 	tagList, _, err := h.GoFish.Client.Repositories.ListTags(ctx, app.Org, app.Name, &ghApi.ListOptions{})
 	if err != nil {
@@ -93,6 +94,24 @@ func (h *HashiCorp) CreateApplication(ctx context.Context, app models.DesiredApp
 	}
 
 	release := tagList[0]
+
+	newestRelease, _ := semver.Make("0.0.0")
+
+	for _, v := range tagList {
+		releaseVersion, err := semver.Make(strings.Replace(v.GetName(), "v", "", 1))
+		if err != nil {
+			continue
+		}
+		if len(releaseVersion.Pre) != 0 {
+			log.L.Debugf("Discarding prerelease: %s", v.GetName())
+		}
+
+		if releaseVersion.GT(newestRelease) && len(releaseVersion.Pre) == 0 {
+			newestRelease = releaseVersion
+			release = v
+		}
+	}
+
 	var checksums string
 	releaseName := release.GetName()
 	cleanVersion := strings.Replace(releaseName, "v", "", 1)

@@ -3,6 +3,7 @@ package gofishgithub
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 
 	"github.com/gobuffalo/envy"
 	"golang.org/x/oauth2"
@@ -11,8 +12,8 @@ import (
 
 	"github.com/gofish-bot/gofish-bot/log"
 	"github.com/gofish-bot/gofish-bot/models"
-	"github.com/google/go-github/v26/github"
-	ghApi "github.com/google/go-github/v26/github"
+	"github.com/google/go-github/v32/github"
+	ghApi "github.com/google/go-github/v32/github"
 )
 
 type GoFish struct {
@@ -116,7 +117,7 @@ func (p *GoFish) createFile(ctx context.Context, application *models.Application
 func (p *GoFish) createNewBranch(ctx context.Context, application *models.Application, branch string) error {
 	log.G(ctx).Debugf("Creating new Branch %s\n", branch)
 
-	ref, _, err := p.Client.Git.GetRef(ctx, p.BotOrg, p.FoodRepo, "refs/heads/master")
+	ref, _, err := p.Client.Git.GetRef(ctx, p.BotOrg, p.FoodRepo, "refs/heads/main")
 	if err != nil {
 		return errors.Wrapf(err, "Error creating ref %s", ref)
 	}
@@ -136,13 +137,16 @@ func (p *GoFish) newPullRequest(ctx context.Context, application *models.Applica
 	newPR := &github.NewPullRequest{
 		Title:               github.String(fmt.Sprintf("%s %s", application.Name, application.Version)),
 		Head:                github.String(p.BotOrg + ":" + branch),
-		Base:                github.String("master"),
+		Base:                github.String("main"),
 		Body:                github.String(body),
 		MaintainerCanModify: github.Bool(true),
 	}
 
-	pr, _, err := p.Client.PullRequests.Create(context.Background(), p.FoodOrg, p.FoodRepo, newPR)
+	pr, res, err := p.Client.PullRequests.Create(context.Background(), p.FoodOrg, p.FoodRepo, newPR)
 	if err != nil {
+		r, _ := ioutil.ReadAll(res.Response.Body)
+		defer res.Response.Body.Close()
+		log.G(ctx).Warnf("%s", r)
 		return err
 	}
 

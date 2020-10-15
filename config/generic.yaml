@@ -101,6 +101,21 @@
 - repo: k3d
   org: rancher
 
+- repo: cli
+  org: rancher
+  name: rancher
+
+- repo: cli
+  org: cli
+  name: gh
+
+- repo: golangci-lint
+  org: golangci
+
+- repo: minikube
+  org: kubernetes
+  arch: amd64
+
 # Release not following semantic versioning 
 # - repo: linkerd2
 #   org: linkerd

@@ -17,8 +17,8 @@ import (
 
 	"strings"
 
-	"github.com/google/go-github/v26/github"
-	ghApi "github.com/google/go-github/v26/github"
+	"github.com/google/go-github/v32/github"
+	ghApi "github.com/google/go-github/v32/github"
 )
 
 type Github struct {
@@ -78,7 +78,7 @@ func (g *Github) UpdateApplications(ctx context.Context, appsGithub []models.Des
 }
 
 func (g *Github) CreateApplication(ctx context.Context, app models.DesiredApp) (*models.Application, error) {
-	log.G(ctx).Infof("## Creating Application for %s", app.Name)
+	log.G(ctx).Infof("## Creating Application for %s: https://github.com/%s/%s/releases/", app.Name, app.Org, app.Repo)
 
 	releaseList, _, err := g.GoFish.Client.Repositories.ListReleases(ctx, app.Org, app.Repo, &ghApi.ListOptions{})
 	if err != nil {
@@ -181,7 +181,7 @@ func findRelease(app models.DesiredApp, releaseList []*ghApi.RepositoryRelease) 
 	return release
 }
 
-func (g *Github) GetAssets(ctx context.Context, app models.Application, releaseAssets []github.ReleaseAsset, checksumService *ChecksumService) []models.Asset {
+func (g *Github) GetAssets(ctx context.Context, app models.Application, releaseAssets []*github.ReleaseAsset, checksumService *ChecksumService) []models.Asset {
 
 	assets := []models.Asset{}
 
@@ -200,7 +200,7 @@ func (g *Github) GetAssets(ctx context.Context, app models.Application, releaseA
 
 		log.G(ctx).Debugf("Clean asset name: %s ", cleanName)
 
-		if (strings.Contains(cleanName, "osx") || strings.Contains(cleanName, "darwin") || strings.Contains(cleanName, "macos")) && strings.Contains(cleanName, app.Arch) {
+		if (strings.Contains(cleanName, "osx") || strings.Contains(cleanName, "darwin") || strings.Contains(cleanName, "macos") || strings.Contains(cleanName, "mac")) && strings.Contains(cleanName, app.Arch) {
 			log.G(ctx).Debugf(" - OSX asset %s ", *c.Name)
 			assets = append(assets, models.Asset{
 				Arch:        "amd64",

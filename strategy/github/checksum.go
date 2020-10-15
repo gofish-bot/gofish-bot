@@ -11,7 +11,7 @@ import (
 
 	"github.com/gofish-bot/gofish-bot/log"
 	"github.com/gofish-bot/gofish-bot/models"
-	ghApi "github.com/google/go-github/v26/github"
+	ghApi "github.com/google/go-github/v32/github"
 )
 
 type ChecksumService struct {
@@ -26,7 +26,7 @@ type Checksum struct {
 	SHA       string
 }
 
-func NewChecksumService(application models.Application, ghClient *ghApi.Client, assets []ghApi.ReleaseAsset) *ChecksumService {
+func NewChecksumService(application models.Application, ghClient *ghApi.Client, assets []*ghApi.ReleaseAsset) *ChecksumService {
 	c := &ChecksumService{
 		application: application,
 		ghClient:    ghClient,
@@ -68,11 +68,11 @@ func (c *ChecksumService) getShaFromURL(assetName, assetURL string) (string, err
 	return fmt.Sprintf("%x", h.Sum(nil)), nil
 }
 
-func (c *ChecksumService) preLoadFromAssets(assets []ghApi.ReleaseAsset) {
+func (c *ChecksumService) preLoadFromAssets(assets []*ghApi.ReleaseAsset) {
 	checksums := ""
 
 	for _, asset := range assets {
-		if strings.Contains(asset.GetName(), "checksums") {
+		if strings.Contains(asset.GetName(), "checksums") && !strings.Contains(asset.GetName(), "512") {
 			reader, err := c.downloadFile(asset.GetName(), asset.GetBrowserDownloadURL())
 			if err != nil {
 				log.L.Errorf("Could not download checksums: %s %v", asset.GetBrowserDownloadURL(), err)

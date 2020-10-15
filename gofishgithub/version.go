@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/gofish-bot/gofish-bot/models"
-	"github.com/google/go-github/v26/github"
+	"github.com/google/go-github/v32/github"
 
 	"github.com/fishworks/gofish"
 	"github.com/yuin/gluamapper"
@@ -13,7 +13,7 @@ import (
 )
 
 func (p *GoFish) GetCurrentVersion(ctx context.Context, app models.DesiredApp) (string, error) {
-	return p.getVersion(ctx, app, "master")
+	return p.getVersion(ctx, app, "main")
 }
 
 func (p *GoFish) getVersion(ctx context.Context, app models.DesiredApp, ref string) (string, error) {
@@ -27,11 +27,11 @@ func (p *GoFish) getVersion(ctx context.Context, app models.DesiredApp, ref stri
 }
 
 func (p *GoFish) GetCurrentFood(ctx context.Context, appRepo string) (string, *gofish.Food, error) {
-	content, err := p.getContent(ctx, appRepo, "master")
+	content, err := p.getContent(ctx, appRepo, "main")
 	if err != nil {
 		return "", nil, err
 	}
-	food, err := p.getFood(ctx, appRepo, "master")
+	food, err := p.getFood(ctx, appRepo, "main")
 	if err != nil {
 		return "", nil, err
 	}

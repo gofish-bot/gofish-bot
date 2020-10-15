@@ -8,7 +8,7 @@ import (
 	"path"
 	"strings"
 
-	"github.com/fishworks/gofish"
+	"github.com/fishworks/gofish/pkg/home"
 	"github.com/gofish-bot/gofish-bot/gofishgithub"
 
 	"github.com/gofish-bot/gofish-bot/log"
@@ -18,7 +18,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/gobuffalo/envy"
-	ghApi "github.com/google/go-github/v26/github"
+	ghApi "github.com/google/go-github/v32/github"
 	"golang.org/x/oauth2"
 
 	"github.com/fatih/color"
@@ -98,7 +98,7 @@ func main() {
 
 		if clean {
 			clearDir(tmpDir)
-			clearDir(gofish.UserHome(gofish.UserHomePath).Cache())
+			clearDir(home.Cache())
 		}
 
 		u, err := url.Parse(githubPath)
@@ -170,7 +170,7 @@ func main() {
 
 		err = g.GoFish.Lint(application)
 		if err != nil {
-			log.G(ctx).Warnf("Linting failed: %v", err)
+			log.G(ctx).Warnf("Linting failed in cmd: %v", err)
 		} else {
 			log.G(ctx).Infof("Linting ok: %v", application.Name)
 		}

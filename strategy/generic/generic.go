@@ -15,7 +15,7 @@ import (
 
 	"strings"
 
-	ghApi "github.com/google/go-github/v26/github"
+	ghApi "github.com/google/go-github/v32/github"
 )
 
 type Generic struct {
@@ -87,7 +87,7 @@ func (g *Generic) UpdateApplications(ctx context.Context, appsGithub []models.De
 }
 
 func (g *Generic) CreateApplication(ctx context.Context, app models.DesiredApp) (*models.Application, error) {
-	log.G(ctx).Infof("## Creating Application for %s", app.Name)
+	log.G(ctx).Infof("## Creating Application for %s: https://github.com/%s/%s/releases/", app.Name, app.Org, app.Repo)
 
 	releaseList, _, err := g.GoFish.Client.Repositories.ListReleases(ctx, app.Org, app.Repo, &ghApi.ListOptions{})
 	if err != nil {

@@ -6,7 +6,7 @@ import (
 	"os"
 	"path"
 
-	"github.com/fishworks/gofish"
+	"github.com/fishworks/gofish/pkg/home"
 	"github.com/gofish-bot/gofish-bot/gofishgithub"
 	"github.com/sirupsen/logrus"
 
@@ -24,10 +24,10 @@ import (
 const tmpDir = "/tmp/gofish-bot"
 
 func init() {
-	mkDir(tmpDir)
+	mkDir()
 }
 
-func mkDir(path string) {
+func mkDir() {
 	err := os.MkdirAll(tmpDir, os.ModePerm)
 	if err == nil || os.IsExist(err) {
 		return
@@ -74,7 +74,7 @@ func main() {
 
 		if clean {
 			clearDir(tmpDir)
-			clearDir(gofish.UserHome(gofish.UserHomePath).Cache())
+			clearDir(home.Cache())
 		}
 
 		ctx := context.Background()

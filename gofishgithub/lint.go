@@ -6,10 +6,10 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-
-	"github.com/fishworks/gofish"
+	"strings"
 
 	"github.com/dustin/go-humanize"
+	"github.com/fishworks/gofish/pkg/home"
 	"github.com/gofish-bot/gofish-bot/log"
 	"github.com/gofish-bot/gofish-bot/models"
 )
@@ -33,7 +33,7 @@ func (p *GoFish) lint(name, content string) error {
 
 	food, err := p.GetAsFood(content)
 	if err != nil {
-		return err
+		return fmt.Errorf("Converting to food (%s) failed: %v", name, err)
 	}
 
 	if len(food.Packages) < 3 {
@@ -56,7 +56,7 @@ func (p *GoFish) lint(name, content string) error {
 			return fmt.Errorf("could not parse package URL '%s' as a URL: %v", pkg.URL, err)
 		}
 
-		cachedFilePath := filepath.Join(gofish.UserHome(gofish.UserHomePath).Cache(), fmt.Sprintf("%s-%s-%s-%s%s", food.Name, food.Version, pkg.OS, pkg.Arch, filepath.Ext(u.Path)))
+		cachedFilePath := filepath.Join(home.Cache(), fmt.Sprintf("%s-%s-%s-%s%s", food.Name, food.Version, pkg.OS, pkg.Arch, getExtension(u.Path)))
 		fi, err := os.Stat(cachedFilePath)
 		if err != nil {
 			return err
@@ -69,4 +69,14 @@ func (p *GoFish) lint(name, content string) error {
 	}
 
 	return nil
+}
+
+// From github.com/fishworks/gofish@v0.13.0/food.go
+func getExtension(path string) string {
+	urlParts := strings.Split(path, "/")
+	parts := strings.Split(urlParts[len(urlParts)-1], ".")
+	if len(parts) < 2 {
+		return filepath.Ext(path)
+	}
+	return "." + strings.Join([]string{parts[len(parts)-2], parts[len(parts)-1]}, ".")
 }
