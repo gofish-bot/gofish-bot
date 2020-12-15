@@ -7,6 +7,7 @@ import (
 	"path"
 
 	"github.com/fishworks/gofish/pkg/home"
+	"github.com/gobuffalo/envy"
 	"github.com/gofish-bot/gofish-bot/gofishgithub"
 	"github.com/sirupsen/logrus"
 
@@ -77,16 +78,29 @@ func main() {
 			clearDir(home.Cache())
 		}
 
+		githubOrg, err := envy.MustGet("GITHUB_ORG")
+		if err != nil {
+			log.L.Fatalf("Error getting Github token: %v", err)
+		}
+		githubName, err := envy.MustGet("GITHUB_NAME")
+		if err != nil {
+			log.L.Fatalf("Error getting Github token: %v", err)
+		}
+		githubEmail, err := envy.MustGet("GITHUB_EMAIL")
+		if err != nil {
+			log.L.Fatalf("Error getting Github token: %v", err)
+		}
+
 		ctx := context.Background()
 
 		client := gofishgithub.CreateClient(ctx)
 		goFish := &gofishgithub.GoFish{
 			Client:      client,
-			BotOrg:      "fmotrifork",
+			BotOrg:      githubOrg,
 			FoodRepo:    "fish-food",
 			FoodOrg:     "fishworks",
-			AuthorName:  "Frederik Mogensen",
-			AuthorEmail: "fmo@trifork.com",
+			AuthorName:  githubName,
+			AuthorEmail: githubEmail,
 		}
 		// Hashicorp
 		h := hashicorp.HashiCorp{GoFish: goFish}

@@ -9,3 +9,7 @@
 - repo: vault
   org: hashicorp
   arch: amd64
+
+- repo: vagrant
+  org: hashicorp
+  arch: amd64

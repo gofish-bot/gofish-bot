@@ -44,6 +44,10 @@
   name: brig
   arch: amd64
 
+- repo: bicep
+  org: Azure
+  arch: x64
+
 - repo: helmfile
   org: roboll
 
@@ -54,6 +58,10 @@
 - repo: cri-tools
   org: kubernetes-sigs
   name: critest
+
+- repo: cluster-api
+  org: kubernetes-sigs
+  name: clusterctl
 
 - repo: fission
   org: fission

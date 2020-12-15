@@ -18,8 +18,6 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/gobuffalo/envy"
-	ghApi "github.com/google/go-github/v32/github"
-	"golang.org/x/oauth2"
 
 	"github.com/fatih/color"
 	"github.com/rodaine/table"
@@ -106,22 +104,19 @@ func main() {
 			panic(err)
 		}
 
-		githubToken, err := envy.MustGet("GITHUB_TOKEN")
-		if err != nil {
-			log.G(ctx).Fatalf("Error getting Github token: %v", err)
-		}
-
 		githubOrg, err := envy.MustGet("GITHUB_ORG")
 		if err != nil {
 			log.G(ctx).Fatalf("Error getting Github token: %v", err)
 		}
+		githubName, err := envy.MustGet("GITHUB_NAME")
+		if err != nil {
+			log.G(ctx).Fatalf("Error getting Github token: %v", err)
+		}
+		githubEmail, err := envy.MustGet("GITHUB_EMAIL")
+		if err != nil {
+			log.G(ctx).Fatalf("Error getting Github token: %v", err)
+		}
 
-		ts := oauth2.StaticTokenSource(
-			&oauth2.Token{AccessToken: githubToken},
-		)
-		tc := oauth2.NewClient(ctx, ts)
-
-		client := ghApi.NewClient(tc)
 		org := strings.Split(u.Path, "/")[1]
 		repo := strings.Split(u.Path, "/")[2]
 
@@ -139,13 +134,14 @@ func main() {
 		}
 		log.G(ctx).Infof("%v", app)
 
+		client := gofishgithub.CreateClient(ctx)
 		goFish := &gofishgithub.GoFish{
 			Client:      client,
 			BotOrg:      githubOrg,
 			FoodRepo:    "fish-food",
 			FoodOrg:     "fishworks",
-			AuthorName:  "Frederik Mogensen",
-			AuthorEmail: "fmo@trifork.com",
+			AuthorName:  githubName,
+			AuthorEmail: githubEmail,
 		}
 
 		g := github.Github{

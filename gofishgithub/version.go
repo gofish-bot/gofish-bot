@@ -5,9 +5,9 @@ import (
 	"fmt"
 
 	"github.com/gofish-bot/gofish-bot/models"
-	"github.com/google/go-github/v32/github"
 
 	"github.com/fishworks/gofish"
+	"github.com/google/go-github/v32/github"
 	"github.com/yuin/gluamapper"
 	lua "github.com/yuin/gopher-lua"
 )

@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/google/go-github/v26/github"
-	ghApi "github.com/google/go-github/v26/github"
 	"github.com/gofish-bot/gofish-bot/models"
+	"github.com/google/go-github/v32/github"
+	ghApi "github.com/google/go-github/v32/github"
 )
 
 func TestGoFish_getVersion(t *testing.T) {
