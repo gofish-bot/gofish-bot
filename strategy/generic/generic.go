@@ -149,7 +149,9 @@ func findRelease(app models.DesiredApp, releaseList []*ghApi.RepositoryRelease) 
 	newestRelease, _ := semver.Make("0.0.0")
 
 	for _, v := range releaseList {
-		releaseVersion, err := semver.Make(strings.Replace(v.GetTagName(), "v", "", 1))
+		cleanVersion := strings.Replace(v.GetTagName(), "v", "", 1)
+		cleanVersion = strings.Replace(cleanVersion, app.Name + "-", "", 1)
+		releaseVersion, err := semver.Make(cleanVersion)
 		if err != nil {
 			continue
 		}

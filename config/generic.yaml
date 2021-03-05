@@ -124,6 +124,44 @@
   org: kubernetes
   arch: amd64
 
+- repo: anycable-go
+  org: anycable
+  arch: amd64
+
+- repo: oras
+  org: deislabs
+  arch: amd64
+
+- repo: tilt
+  org: tilt-dev
+  arch: x64
+
+- repo: terraform-docs
+  org: terraform-docs
+  arch: amd64
+
+- repo: yaegi
+  org: traefik
+  arch: amd64
+  
+- repo: terragrunt
+  org: gruntwork-io
+  arch: amd64
+
+- repo: policy-hub-cli
+  org: policy-hub
+  arch: x64
+
+- repo: osm
+  org: openservicemesh
+  arch: amd64
+
+- repo: krustlet
+  org: deislabs
+  arch: amd64
+
+
+
 # Release not following semantic versioning 
 # - repo: linkerd2
 #   org: linkerd
@@ -135,7 +173,7 @@
 
 # Zip not published on jetbrains https://github.com/fishworks/fish-food/issues/323
 # - repo: delve
-#   org: derekparker
+#   org: go-delve
   
 # No releases on github
 # - repo: kubectl

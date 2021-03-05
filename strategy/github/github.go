@@ -155,11 +155,13 @@ func (g *Github) CreatePullRequest(ctx context.Context, application *models.Appl
 
 func findRelease(app models.DesiredApp, releaseList []*ghApi.RepositoryRelease) *ghApi.RepositoryRelease {
 
-	release := releaseList[0]
+	var release *ghApi.RepositoryRelease
 	newestRelease, _ := semver.Make("0.0.0")
 
 	for _, v := range releaseList {
-		releaseVersion, err := semver.Make(strings.Replace(v.GetTagName(), "v", "", 1))
+		cleanVersion := strings.Replace(v.GetTagName(), "v", "", 1)
+		cleanVersion = strings.Replace(cleanVersion, app.Name+"-", "", 1)
+		releaseVersion, err := semver.Make(cleanVersion)
 		if err != nil {
 			continue
 		}
@@ -177,6 +179,10 @@ func findRelease(app models.DesiredApp, releaseList []*ghApi.RepositoryRelease) 
 			}
 			return releaseList[k]
 		}
+	}
+	if release == nil {
+		log.L.Warnf("Falling back to first release in list: %v", releaseList[0].GetTagName())
+		return releaseList[0]
 	}
 	return release
 }
@@ -200,6 +206,15 @@ func (g *Github) GetAssets(ctx context.Context, app models.Application, releaseA
 
 		log.G(ctx).Debugf("Clean asset name: %s ", cleanName)
 
+		if strings.HasSuffix(cleanName, ".rpm") ||
+			strings.HasSuffix(cleanName, ".deb") ||
+			strings.HasSuffix(cleanName, ".msi") ||
+			strings.HasSuffix(cleanName, ".yaml") ||
+			strings.HasSuffix(cleanName, ".txt") ||
+			strings.HasSuffix(cleanName, ".dmg") {
+			continue
+		}
+
 		if (strings.Contains(cleanName, "osx") || strings.Contains(cleanName, "darwin") || strings.Contains(cleanName, "macos") || strings.Contains(cleanName, "mac")) && strings.Contains(cleanName, app.Arch) {
 			log.G(ctx).Debugf(" - OSX asset %s ", *c.Name)
 			assets = append(assets, models.Asset{
@@ -212,11 +227,13 @@ func (g *Github) GetAssets(ctx context.Context, app models.Application, releaseA
 				Executable:  true,
 			})
 
-		} else if strings.Contains(cleanName, "linux") && strings.Contains(cleanName, app.Arch) {
+		} else if (strings.Contains(cleanName, "linux") || strings.Contains(cleanName, "ubuntu")) && strings.Contains(cleanName, app.Arch) {
+
 			log.G(ctx).Debugf(" - linux asset %s ", *c.Name)
 			assets = append(assets, models.Asset{
-				Arch:        "amd64",
-				Os:          "linux",
+				Arch: "amd64",
+				Os:   "linux",
+
 				AssertName:  assetName,
 				InstallPath: "\"bin/\" .. name",
 				Path:        path,
