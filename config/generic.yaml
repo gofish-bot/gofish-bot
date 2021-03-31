@@ -160,6 +160,9 @@
   org: deislabs
   arch: amd64
 
+- repo: octant
+  org: vmware-tanzu
+  arch: 64bit
 
 
 # Release not following semantic versioning 

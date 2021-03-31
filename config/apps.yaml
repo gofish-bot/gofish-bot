@@ -37,10 +37,6 @@
   org: instrumenta
   arch: amd64
 
-- repo: octant
-  org: vmware-tanzu
-  arch: 64bit
-
 # Bad version name, with slash in..
 # - repo: kustomize
 #   org: kubernetes-sigs
