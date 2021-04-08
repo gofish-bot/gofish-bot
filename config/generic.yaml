@@ -103,6 +103,10 @@
   name: fluxctl
   org: fluxcd
 
+- repo: flux2
+  name: flux
+  org: fluxcd
+
 - repo: jx
   org: jenkins-x
 
