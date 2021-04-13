@@ -147,7 +147,7 @@
 - repo: yaegi
   org: traefik
   arch: amd64
-  
+
 - repo: terragrunt
   org: gruntwork-io
   arch: amd64
@@ -168,8 +168,12 @@
   org: vmware-tanzu
   arch: 64bit
 
+- repo: cloudsql-proxy
+  org: GoogleCloudPlatform
+  arch: amd64
+  name: cloud_sql_proxy
 
-# Release not following semantic versioning 
+# Release not following semantic versioning
 # - repo: linkerd2
 #   org: linkerd
 #   name: linkerd
@@ -181,7 +185,7 @@
 # Zip not published on jetbrains https://github.com/fishworks/fish-food/issues/323
 # - repo: delve
 #   org: go-delve
-  
+
 # No releases on github
 # - repo: kubectl
 #   org: kubernetes
