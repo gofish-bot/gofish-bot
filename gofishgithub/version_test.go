@@ -43,6 +43,7 @@ func TestGoFish_getVersion(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				app: models.DesiredApp{
+					Name: "glooctl",
 					Repo: "glooctl",
 				},
 				ref: "3e06512e56f416a6a8e154174012d1422f2b5f92",
@@ -64,6 +65,7 @@ func TestGoFish_getVersion(t *testing.T) {
 
 				ctx: context.Background(),
 				app: models.DesiredApp{
+					Name: "glooctl",
 					Repo: "glooctl",
 				},
 				ref: "60d5d37507c11390d1d57812663c57f5432b314f",

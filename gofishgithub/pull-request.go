@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"regexp"
+	"strings"
 
 	"github.com/gobuffalo/envy"
 	"golang.org/x/oauth2"
@@ -49,7 +51,11 @@ func (p *GoFish) CreatePullRequest(ctx context.Context, application *models.Appl
 	}
 	body := fmt.Sprintf("Updating package %s to release %s.", application.Name, application.ReleaseName)
 	if application.ReleaseDescription != "" {
-		body = fmt.Sprintf("Updating package %s to release %s. \n\n# Release info \n\n %s", application.Name, application.ReleaseName, application.ReleaseDescription)
+
+		// Escape mentions and links to PRs/Issues
+		releaseDescription := cleanMarkdown(application.ReleaseDescription)
+
+		body = fmt.Sprintf("Updating package %s to release %s. \n\n# Release info \n\n %s", application.Name, application.ReleaseName, releaseDescription)
 	}
 	if application.CurrentVersion != "" {
 		err = p.updateFile(ctx, application, fileContent, branch)
@@ -152,4 +158,38 @@ func (p *GoFish) newPullRequest(ctx context.Context, application *models.Applica
 
 	log.G(ctx).Infof("PR created: %s\n", pr.GetHTMLURL())
 	return nil
+}
+
+// cleanMarkdown escapes @mentions and links to #PRs/#Issues
+func cleanMarkdown(markdown string) string {
+	// Escape issue links
+	var re = regexp.MustCompile(`#([0-9]+)`)
+	markdown = re.ReplaceAllString(markdown, `#<!-- -->$1`)
+
+	// Excape mentions
+	re = regexp.MustCompile(`@([a-zA-Z\d](?:[a-zA-Z\d\-]){0,38})`)
+	markdown = re.ReplaceAllString(markdown, `@<!-- -->$1`)
+
+	// Remove Markdown Link syntax
+	re = regexp.MustCompile(`\[([^\[]+)\]\((.*)\)`)
+	markdown = re.ReplaceAllString(markdown, "$2")
+
+	// Escape everything that looks like a url
+	// TODO This regex also replaces urls inside markdown script tags..
+	re = regexp.MustCompile(`[(http(s)?):\/\/(www\.)?a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)`)
+	allLinks := re.FindAllStringSubmatch(markdown, -1)
+	for _, linkRes := range allLinks {
+		// Escape all slashes
+		cleanUrl := strings.ReplaceAll(linkRes[0], "/", "<span/>/")
+		// Escape all dots
+		cleanUrl = strings.ReplaceAll(cleanUrl, ".", "<span/>.")
+		markdown = strings.ReplaceAll(markdown, linkRes[0], cleanUrl)
+	}
+
+	// TODO We may want to add this?
+	// Replaces github repo links
+	// re = regexp.MustCompile(`([a-zA-Z\d-]+)\/([a-zA-Z\d-]+)`)
+	// markdown = re.ReplaceAllString(markdown, "$1<span/>/$2")
+
+	return markdown
 }
