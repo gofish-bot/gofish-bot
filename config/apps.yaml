@@ -37,6 +37,15 @@
   org: instrumenta
   arch: amd64
 
+- repo: ctop
+  org: bcicen
+  arch: amd64
+
+- repo: fzf
+  org: junegunn
+  name: fzf
+  arch: amd64
+  
 # Bad version name, with slash in..
 # - repo: kustomize
 #   org: kubernetes-sigs

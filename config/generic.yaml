@@ -66,10 +66,6 @@
 - repo: fission
   org: fission
 
-- repo: fzf
-  org: junegunn
-  name: fzf
-
 - repo: kubebuilder
   org: kubernetes-sigs
   arch: amd64
@@ -92,6 +88,10 @@
   org: argoproj
 
 - repo: polaris
+  org: FairwindsOps
+  arch: amd64
+
+- repo: nova
   org: FairwindsOps
   arch: amd64
 
