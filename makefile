@@ -16,7 +16,7 @@ last-version:  ## last deployed version
 	git describe --tags
 
 run:  ## run
-	go run . --apply 
+	go run . --apply
 
 # Full release - build, tag and push the container, deploy to k8s
 release: build publish-version deploy-k8s ## Make a release by building and publishing the `{version}` and deploying to k8s
