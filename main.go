@@ -16,7 +16,6 @@ import (
 	"github.com/gofish-bot/gofish-bot/models"
 	"github.com/gofish-bot/gofish-bot/strategy/generic"
 	"github.com/gofish-bot/gofish-bot/strategy/github"
-	"github.com/gofish-bot/gofish-bot/strategy/hashicorp"
 
 	"github.com/go-yaml/yaml"
 	"github.com/urfave/cli"
@@ -102,9 +101,6 @@ func main() {
 			AuthorName:  githubName,
 			AuthorEmail: githubEmail,
 		}
-		// Hashicorp
-		h := hashicorp.HashiCorp{GoFish: goFish}
-		h.UpdateApplications(ctx, getApps("config/hashicorp.yaml", target), apply)
 
 		// Generic
 		gen := generic.Generic{GoFish: goFish}

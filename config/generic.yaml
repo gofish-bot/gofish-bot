@@ -211,7 +211,21 @@
 - repo: gloo
   org: solo-io
   name: glooctl
-# Release not following semantic versioning 
+
+- repo: terraform
+  org: hashicorp
+  arch: amd64
+
+- repo: packer
+  org: hashicorp
+  arch: amd64
+
+- repo: vault
+  org: hashicorp
+  arch: amd64
+
+
+# Release not following semantic versioning
 # - repo: linkerd2
 #   org: linkerd
 #   name: linkerd
