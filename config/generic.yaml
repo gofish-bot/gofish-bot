@@ -173,7 +173,30 @@
   arch: amd64
   name: cloud_sql_proxy
 
-# Release not following semantic versioning
+- repo: kubernetes
+  org: kubernetes
+  name: kubectl
+
+- repo: go
+  org: golang
+
+- repo: vagrant
+  org: hashicorp
+  arch: amd64
+
+- repo: kube-no-trouble
+  org: doitintl
+  arch: amd64
+
+- repo: gitleaks
+  org: zricethezav
+  arch: amd64
+
+- repo: infracost
+  org: infracost
+  arch: amd64
+
+# Release not following semantic versioning 
 # - repo: linkerd2
 #   org: linkerd
 #   name: linkerd
@@ -186,9 +209,3 @@
 # - repo: delve
 #   org: go-delve
 
-# No releases on github
-# - repo: kubectl
-#   org: kubernetes
-
-# - repo: go
-#   org: golang

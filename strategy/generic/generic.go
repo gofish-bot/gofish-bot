@@ -99,7 +99,21 @@ func (g *Generic) CreateApplication(ctx context.Context, app models.DesiredApp) 
 		return nil, err
 	}
 
-	release := findRelease(app, releaseList)
+	var tagList []*ghApi.RepositoryTag
+	opt := &ghApi.ListOptions{PerPage: 100}
+	for {
+		tags, resp, err := g.GoFish.Client.Repositories.ListTags(ctx, app.Org, app.Repo, opt)
+		if err != nil {
+			return nil, err
+		}
+		tagList = append(tagList, tags...)
+		if resp.NextPage == 0 {
+			break
+		}
+		opt.Page = resp.NextPage
+	}
+
+	release := findRelease(app, releaseList, tagList)
 
 	releaseName := release.GetTagName()
 
@@ -143,20 +157,26 @@ func (g *Generic) CreatePullRequest(ctx context.Context, application *models.App
 	}
 }
 
-func findRelease(app models.DesiredApp, releaseList []*ghApi.RepositoryRelease) *ghApi.RepositoryRelease {
+func findRelease(app models.DesiredApp, releaseList []*ghApi.RepositoryRelease, tagList []*ghApi.RepositoryTag) *ghApi.RepositoryRelease {
 
 	var release *ghApi.RepositoryRelease
 	newestRelease, _ := semver.Make("0.0.0")
 
 	for _, v := range releaseList {
-		cleanVersion := strings.Replace(v.GetTagName(), "v", "", 1)
-		cleanVersion = strings.Replace(cleanVersion, app.Name + "-", "", 1)
+		tagName := v.GetTagName()
+		cleanVersion := strings.Replace(tagName, "v", "", 1)
+		// remove "name-"
+		cleanVersion = strings.Replace(cleanVersion, app.Name+"-", "", 1)
+		// remove "name"
+		cleanVersion = strings.Replace(cleanVersion, app.Name, "", 1)
+
+		log.L.Debugf("Testing release: %s -> %s", tagName, cleanVersion)
 		releaseVersion, err := semver.Make(cleanVersion)
 		if err != nil {
 			continue
 		}
 
-		if releaseVersion.GT(newestRelease) && len(releaseVersion.Pre) == 0 && !strings.Contains(v.GetTagName(), "edge") {
+		if releaseVersion.GT(newestRelease) && len(releaseVersion.Pre) == 0 && !strings.Contains(tagName, "edge") {
 			newestRelease = releaseVersion
 			release = v
 		}
@@ -170,10 +190,38 @@ func findRelease(app models.DesiredApp, releaseList []*ghApi.RepositoryRelease) 
 			return releaseList[k]
 		}
 	}
-	if release == nil {
+	if release != nil {
+		return release
+	}
+
+	if len(releaseList) > 0 {
 		log.L.Warnf("Falling back to first release in list: %v", releaseList[0].GetTagName())
 		return releaseList[0]
 	}
+
+	for _, v := range tagList {
+
+		tagName := v.GetName()
+		cleanVersion := strings.Replace(tagName, "v", "", 1)
+		// remove "name-"
+		cleanVersion = strings.Replace(cleanVersion, app.Name+"-", "", 1)
+		// remove "name"
+		cleanVersion = strings.Replace(cleanVersion, app.Name, "", 1)
+
+		log.L.Debugf("Testing tags: %s -> %s", tagName, cleanVersion)
+		releaseVersion, err := semver.Make(cleanVersion)
+		if err != nil {
+			continue
+		}
+
+		if releaseVersion.GT(newestRelease) && len(releaseVersion.Pre) == 0 {
+			newestRelease = releaseVersion
+			release = new(ghApi.RepositoryRelease)
+			release.Name = &tagName
+			release.TagName = &cleanVersion
+		}
+	}
+
 	return release
 }
 

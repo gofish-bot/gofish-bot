@@ -166,6 +166,9 @@ func main() {
 
 		err = g.GoFish.Lint(application)
 		if err != nil {
+			if strings.Contains(err.Error(), "Installing failed") {
+				log.G(ctx).Fatal(err)
+			}
 			log.G(ctx).Warnf("Linting failed in cmd: %v", err)
 		} else {
 			log.G(ctx).Infof("Linting ok: %v", application.Name)

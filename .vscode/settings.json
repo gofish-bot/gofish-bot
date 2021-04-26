@@ -1,3 +1,9 @@
 {
-  "go.useLanguageServer": true,    
+  "go.useLanguageServer": true,
+  "spellright.language": [],
+  "spellright.documentTypes": [
+    "markdown",
+    "latex"
+  ],
+  
 }

@@ -191,21 +191,16 @@ func (g *Github) GetAssets(ctx context.Context, app models.Application, releaseA
 
 	assets := []models.Asset{}
 
-	for _, c := range releaseAssets {
-		log.G(ctx).Debugf("Asset: %s ", *c.Name)
-		if strings.Contains(c.GetName(), "sha256") || strings.Contains(c.GetName(), "sha512") {
+	for _, releaseAsset := range releaseAssets {
+		log.G(ctx).Debugf("Asset: %s ", *releaseAsset.Name)
+		if strings.Contains(releaseAsset.GetName(), "sha256") || strings.Contains(releaseAsset.GetName(), "sha512") {
 			continue
 		}
-		cleanName := strings.ToLower(c.GetName())
-		assetName := strings.Replace(c.GetName(), app.Name, "\" .. name .. \"", 1)
-		assetName = strings.Replace(assetName, app.Version, "\" .. version .. \"", 1)
-		path := "name"
-		if !strings.Contains(cleanName, "tar") && !strings.Contains(cleanName, "zip") {
-			path = strings.Replace(c.GetName(), app.Name, "name .. \"", 1) + "\""
+		cleanName := strings.ToLower(releaseAsset.GetName())
+
+		if !strings.Contains(releaseAsset.GetName(), strings.ToLower(app.Name)) {
+			continue
 		}
-
-		log.G(ctx).Debugf("Clean asset name: %s ", cleanName)
-
 		if strings.HasSuffix(cleanName, ".rpm") ||
 			strings.HasSuffix(cleanName, ".deb") ||
 			strings.HasSuffix(cleanName, ".msi") ||
@@ -215,38 +210,47 @@ func (g *Github) GetAssets(ctx context.Context, app models.Application, releaseA
 			continue
 		}
 
+		assetName := strings.Replace(releaseAsset.GetName(), app.Name, "\" .. name .. \"", 1)
+		assetName = strings.Replace(assetName, app.Version, "\" .. version .. \"", 1)
+		path := "name"
+		if !strings.Contains(cleanName, "tar") && !strings.Contains(cleanName, "zip") {
+			path = strings.Replace(releaseAsset.GetName(), app.Name, "name .. \"", 1) + "\""
+			path = strings.Replace(path, app.Version, "\" .. version .. \"", 1)
+		}
+
+		log.G(ctx).Debugf("Clean asset name: %s ", cleanName)
+
 		if (strings.Contains(cleanName, "osx") || strings.Contains(cleanName, "darwin") || strings.Contains(cleanName, "macos") || strings.Contains(cleanName, "mac")) && strings.Contains(cleanName, app.Arch) {
-			log.G(ctx).Debugf(" - OSX asset %s ", *c.Name)
+			log.G(ctx).Debugf(" - OSX asset %s ", *releaseAsset.Name)
 			assets = append(assets, models.Asset{
 				Arch:        "amd64",
 				Os:          "darwin",
 				AssertName:  assetName,
 				InstallPath: "\"bin/\" .. name",
 				Path:        path,
-				Sha256:      checksumService.getChecksum(c.GetBrowserDownloadURL(), c.GetName()),
+				Sha256:      checksumService.getChecksum(releaseAsset.GetBrowserDownloadURL(), releaseAsset.GetName()),
 				Executable:  true,
 			})
 
 		} else if (strings.Contains(cleanName, "linux") || strings.Contains(cleanName, "ubuntu")) && strings.Contains(cleanName, app.Arch) {
 
-			log.G(ctx).Debugf(" - linux asset %s ", *c.Name)
+			log.G(ctx).Debugf(" - linux asset %s ", *releaseAsset.Name)
 			assets = append(assets, models.Asset{
-				Arch: "amd64",
-				Os:   "linux",
-
+				Arch:        "amd64",
+				Os:          "linux",
 				AssertName:  assetName,
 				InstallPath: "\"bin/\" .. name",
 				Path:        path,
-				Sha256:      checksumService.getChecksum(c.GetBrowserDownloadURL(), c.GetName()),
+				Sha256:      checksumService.getChecksum(releaseAsset.GetBrowserDownloadURL(), releaseAsset.GetName()),
 				Executable:  true,
 			})
 		} else if (strings.Contains(cleanName, "win") || strings.Contains(cleanName, "windows")) && strings.Contains(cleanName, app.Arch) {
-			log.G(ctx).Debugf(" - windows asset %s ", *c.Name)
+			log.G(ctx).Debugf(" - windows asset %s ", *releaseAsset.Name)
+
+			// If we have an archive, we guess then binary in the archive is name.exe
+			// If this is not right, the linting will catch it
 			if strings.Contains(cleanName, "tar") || strings.Contains(cleanName, "zip") {
 				path = "name .. \".exe\""
-			}
-			if !strings.Contains(cleanName, "tar") && !strings.Contains(cleanName, "zip") && !strings.Contains(cleanName, "exe") {
-				path = "name"
 			}
 
 			assets = append(assets, models.Asset{
@@ -255,7 +259,7 @@ func (g *Github) GetAssets(ctx context.Context, app models.Application, releaseA
 				AssertName:  assetName,
 				InstallPath: "\"bin\\\\\" .. name .. \".exe\"",
 				Path:        path,
-				Sha256:      checksumService.getChecksum(c.GetBrowserDownloadURL(), c.GetName()),
+				Sha256:      checksumService.getChecksum(releaseAsset.GetBrowserDownloadURL(), releaseAsset.GetName()),
 				Executable:  false,
 			})
 		}
