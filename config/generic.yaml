@@ -196,6 +196,21 @@
   org: infracost
   arch: amd64
 
+- repo: act
+  org: nektos
+
+- repo: arkade
+  org: alexellis
+
+- repo: chart-testing
+  org: helm
+
+- repo: conftest
+  org: open-policy-agent
+
+- repo: gloo
+  org: solo-io
+  name: glooctl
 # Release not following semantic versioning 
 # - repo: linkerd2
 #   org: linkerd
