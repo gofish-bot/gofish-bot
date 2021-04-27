@@ -46,6 +46,3 @@
   name: fzf
   arch: amd64
 
-# Bad version name, with slash in..
-# - repo: kustomize
-#   org: kubernetes-sigs

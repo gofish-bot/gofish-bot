@@ -34,14 +34,14 @@ func NewChecksumService(application models.Application, ghClient *ghApi.Client) 
 
 }
 
-func (c *ChecksumService) getChecksum(url, assetName string) string {
+func (c *ChecksumService) getChecksum(url, assetName string) (string, error) {
 	sha, err := c.getShaFromURL(assetName, url)
 	if err != nil {
 		log.L.Error(err)
-		return ""
+		return "", err
 	}
 
-	return sha
+	return sha, nil
 }
 
 func (c *ChecksumService) getShaFromURL(assetName, assetURL string) (string, error) {
@@ -60,7 +60,10 @@ func (c *ChecksumService) getShaFromURL(assetName, assetURL string) (string, err
 
 func (c *ChecksumService) downloadFile(assetName, url string) (io.ReadCloser, error) {
 
-	path := fmt.Sprintf("/tmp/gofish-bot/%s-%s-%s-%s%s", c.application.Organization, c.application.Name, c.application.ReleaseName, assetName, getExtension(url))
+	// Cleaning release name, to not breake folder structure
+	releaseName := strings.ReplaceAll(c.application.ReleaseName, "/", "-")
+
+	path := fmt.Sprintf("/tmp/gofish-bot/%s-%s-%s-%s%s", c.application.Organization, c.application.Name, releaseName, assetName, getExtension(url))
 
 	if _, err := os.Stat(path); err == nil {
 		log.L.Debugf("Getting from cache: %s", url)

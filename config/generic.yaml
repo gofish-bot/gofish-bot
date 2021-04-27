@@ -224,6 +224,8 @@
   org: hashicorp
   arch: amd64
 
+- repo: kustomize
+  org: kubernetes-sigs
 
 # Release not following semantic versioning
 # - repo: linkerd2

@@ -130,7 +130,7 @@ func (g *Generic) CreateApplication(ctx context.Context, app models.DesiredApp) 
 		Repo:               app.Repo,
 		Description:        repoDetails.GetDescription(),
 		Organization:       app.Org,
-		Version:            strings.Replace(releaseName, "v", "", 1),
+		Version:            strings.Replace(getVersion(release.GetTagName(), app.Name), "v", "", 1),
 		Arch:               app.Arch,
 		Licence:            repoDetails.GetLicense().GetSPDXID(),
 		Homepage:           homepage,
@@ -164,11 +164,7 @@ func findRelease(app models.DesiredApp, releaseList []*ghApi.RepositoryRelease, 
 
 	for _, v := range releaseList {
 		tagName := v.GetTagName()
-		cleanVersion := strings.Replace(tagName, "v", "", 1)
-		// remove "name-"
-		cleanVersion = strings.Replace(cleanVersion, app.Name+"-", "", 1)
-		// remove "name"
-		cleanVersion = strings.Replace(cleanVersion, app.Name, "", 1)
+		cleanVersion := getVersion(tagName, app.Name)
 
 		log.L.Debugf("Testing release: %s -> %s", tagName, cleanVersion)
 		releaseVersion, err := semver.Make(cleanVersion)
@@ -200,13 +196,8 @@ func findRelease(app models.DesiredApp, releaseList []*ghApi.RepositoryRelease, 
 	}
 
 	for _, v := range tagList {
-
 		tagName := v.GetName()
-		cleanVersion := strings.Replace(tagName, "v", "", 1)
-		// remove "name-"
-		cleanVersion = strings.Replace(cleanVersion, app.Name+"-", "", 1)
-		// remove "name"
-		cleanVersion = strings.Replace(cleanVersion, app.Name, "", 1)
+		cleanVersion := getVersion(tagName, app.Name)
 
 		log.L.Debugf("Testing tags: %s -> %s", tagName, cleanVersion)
 		releaseVersion, err := semver.Make(cleanVersion)
@@ -216,18 +207,29 @@ func findRelease(app models.DesiredApp, releaseList []*ghApi.RepositoryRelease, 
 
 		if releaseVersion.GT(newestRelease) && len(releaseVersion.Pre) == 0 {
 			newestRelease = releaseVersion
-			release = new(ghApi.RepositoryRelease)
-			release.Name = &tagName
-			release.TagName = &cleanVersion
+			release = &ghApi.RepositoryRelease{
+				Name:    &tagName,
+				TagName: &cleanVersion,
+			}
 		}
 	}
 
 	return release
 }
 
+func getVersion(releaseName, appName string) string {
+	tagName := releaseName
+	cleanVersion := strings.Replace(tagName, "v", "", 1)
+	// remove "name-"
+	cleanVersion = strings.Replace(cleanVersion, appName+"-", "", 1)
+	cleanVersion = strings.Replace(cleanVersion, appName+"/", "", 1)
+	// remove "name"
+	cleanVersion = strings.Replace(cleanVersion, appName, "", 1)
+	return cleanVersion
+}
+
 // The idea behind this strategy is based on the great work from
 // https://github.com/karuppiah7890/uff/blob/master/food_utils.go
-
 func (g *Generic) getUpgradedFood(ctx context.Context, app *models.Application, checksumService *ChecksumService) (string, error) {
 
 	foodStr, _, err := g.GoFish.GetCurrentFood(ctx, app.Name)
@@ -242,10 +244,12 @@ func (g *Generic) getUpgradedFood(ctx context.Context, app *models.Application, 
 	}
 
 	for _, foodPackage := range versionUpgradedFood.Packages {
-		// u, _ := url.Parse(foodPackage.URL)
 		ps := foodPackage.OS + "-" + foodPackage.Arch
 
-		newSha := checksumService.getChecksum(foodPackage.URL, ps)
+		newSha, err := checksumService.getChecksum(foodPackage.URL, ps)
+		if err != nil {
+			return "", err
+		}
 
 		log.G(ctx).Debugf("Replacing old sha %s with %s", foodPackage.SHA256, newSha)
 		versionUpgradedFoodStr = strings.ReplaceAll(versionUpgradedFoodStr, foodPackage.SHA256, newSha)
