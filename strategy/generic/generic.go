@@ -178,14 +178,6 @@ func findRelease(app models.DesiredApp, releaseList []*ghApi.RepositoryRelease, 
 		}
 	}
 
-	if app.Onlyprerelease {
-		for k, v := range releaseList {
-			if v.GetPrerelease() {
-				continue
-			}
-			return releaseList[k]
-		}
-	}
 	if release != nil {
 		return release
 	}

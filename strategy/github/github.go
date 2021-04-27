@@ -172,14 +172,6 @@ func findRelease(app models.DesiredApp, releaseList []*ghApi.RepositoryRelease) 
 		}
 	}
 
-	if app.Onlyprerelease {
-		for k, v := range releaseList {
-			if v.GetPrerelease() {
-				continue
-			}
-			return releaseList[k]
-		}
-	}
 	if release == nil {
 		log.L.Warnf("Falling back to first release in list: %v", releaseList[0].GetTagName())
 		return releaseList[0]

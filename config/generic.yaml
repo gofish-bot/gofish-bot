@@ -33,7 +33,6 @@
 - repo: buffalo
   org: gobuffalo
   arch: amd64
-  onlyprerelease: true
 
 - repo: istio
   org: istio

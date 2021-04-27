@@ -1,12 +1,11 @@
 package models
 
 type DesiredApp struct {
-	Repo           string
-	Org            string
-	Arch           string
-	Name           string
-	Onlyprerelease bool
-	Path           string
+	Repo string
+	Org  string
+	Arch string
+	Name string
+	Path string
 }
 
 type Asset struct {
