@@ -117,7 +117,7 @@ func testInstall(f *gofish.Food, pkg *gofish.Package, src string) error {
 		if resourceFileInfo.IsDir() {
 			fType = "dir"
 		}
-		log.L.Debugf("%10s %7s %s bytes %s %s %s",
+		log.L.Debugf("%10s %7s %s %d bytes %s %s",
 			pkg.OS, pkg.Arch,
 			fType,
 			resourceFileInfo.Size(),
