@@ -230,6 +230,10 @@
   org: tfsec
   arch: amd64
 
+- repo: wasmtime
+  org: bytecodealliance
+  arch: amd64
+
 # Release not following semantic versioning
 # - repo: linkerd2
 #   org: linkerd
