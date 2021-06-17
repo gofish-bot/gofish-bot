@@ -198,6 +198,7 @@ func (g *Github) GetAssets(ctx context.Context, app models.Application, releaseA
 			strings.HasSuffix(cleanName, ".msi") ||
 			strings.HasSuffix(cleanName, ".yaml") ||
 			strings.HasSuffix(cleanName, ".txt") ||
+			strings.HasSuffix(cleanName, ".sig") ||
 			strings.HasSuffix(cleanName, ".dmg") {
 			continue
 		}

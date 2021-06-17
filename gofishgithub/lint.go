@@ -39,10 +39,6 @@ func (p *GoFish) lint(name, content string) error {
 		return fmt.Errorf("Converting to food (%s) failed: %v", name, err)
 	}
 
-	if len(f.Packages) < 3 {
-		return fmt.Errorf("Linting failed: %s \n - %s", name, "Bad number of packages")
-	}
-
 	errs := f.Lint()
 	if len(errs) > 0 {
 		e := ""
@@ -77,6 +73,11 @@ func (p *GoFish) lint(name, content string) error {
 	}
 	log.L.Debugf("Install ok: %s", name)
 
+	// Check for bad number of packages last! This error may be ignored
+	if len(f.Packages) < 3 {
+		return fmt.Errorf("Linting failed: %s \n - %s", name, "Bad number of packages")
+	}
+
 	return nil
 }
 
@@ -108,7 +109,8 @@ func testInstall(f *gofish.Food, pkg *gofish.Package, src string) error {
 	for _, r := range pkg.Resources {
 		log.L.Debugf(" - Resource %s", r.Path)
 
-		resourcePath := filepath.Join(barrelDir, r.Path)
+		rPath := strings.ReplaceAll(r.Path, "\\", "/")
+		resourcePath := filepath.Join(barrelDir, rPath)
 		resourceFileInfo, err := os.Stat(resourcePath)
 		if err != nil {
 			return err
