@@ -234,6 +234,9 @@
   org: bytecodealliance
   arch: amd64
 
+- repo: uplift
+  org: gembaadvantage
+
 # Release not following semantic versioning
 # - repo: linkerd2
 #   org: linkerd
