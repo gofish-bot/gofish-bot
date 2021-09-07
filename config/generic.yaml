@@ -237,6 +237,12 @@
 - repo: uplift
   org: gembaadvantage
 
+- repo: codecommit-sign
+  org: gembaadvantage
+
+- repo: git-remote-codecommit
+  org: gembaadvantage
+
 # Release not following semantic versioning
 # - repo: linkerd2
 #   org: linkerd
