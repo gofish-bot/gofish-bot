@@ -82,6 +82,9 @@
 - repo: helm
   org: helm
 
+- repo: cosign
+  org: sigstore
+
 - repo: argo-cd
   name: argocd
   org: argoproj
