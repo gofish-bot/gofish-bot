@@ -237,6 +237,10 @@
 - repo: uplift
   org: gembaadvantage
 
+
+- repo: goreleaser
+  org: goreleaser
+
 # Release not following semantic versioning
 # - repo: linkerd2
 #   org: linkerd
