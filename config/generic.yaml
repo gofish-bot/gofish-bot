@@ -79,6 +79,9 @@
 - repo: stern
   org: wercker
 
+- repo: minectl
+  org: dirien
+
 - repo: helm
   org: helm
 
