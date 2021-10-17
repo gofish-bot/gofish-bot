@@ -82,6 +82,9 @@
 - repo: minectl
   org: dirien
 
+- repo: k0sctl
+  org: k0sproject  
+
 - repo: helm
   org: helm
 
