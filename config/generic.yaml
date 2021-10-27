@@ -30,9 +30,9 @@
 - repo: saml2aws
   org: Versent
 
-- repo: buffalo
+- repo: cli
   org: gobuffalo
-  arch: amd64
+  name: buffalo
 
 - repo: istio
   org: istio
@@ -246,9 +246,22 @@
 - repo: uplift
   org: gembaadvantage
 
-
 - repo: goreleaser
   org: goreleaser
+
+- repo: berglas
+  org: GoogleCloudPlatform
+
+- repo: kubectx
+  org: ahmetb
+  name: kubectx
+
+- repo: kubectx
+  org: ahmetb
+  name: kubens
+
+- repo: yq
+  org: mikefarah
 
 # Release not following semantic versioning
 # - repo: linkerd2
