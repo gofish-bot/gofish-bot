@@ -263,6 +263,10 @@
 - repo: yq
   org: mikefarah
 
+- repo: jreleaser
+  org: jreleaser
+  name: jreleaser-standalone
+  
 # Release not following semantic versioning
 # - repo: linkerd2
 #   org: linkerd
