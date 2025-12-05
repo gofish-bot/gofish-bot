@@ -13,7 +13,7 @@ require (
 	github.com/mholt/archiver/v3 v3.5.0
 	github.com/pkg/errors v0.9.1
 	github.com/rodaine/table v1.0.1
-	github.com/sirupsen/logrus v1.8.1
+	github.com/sirupsen/logrus v1.8.3
 	github.com/urfave/cli v1.22.5
 	github.com/yuin/gluamapper v0.0.0-20150323120927-d836955830e7
 	github.com/yuin/gopher-lua v0.0.0-20210529063254-f4c35e4016d9
